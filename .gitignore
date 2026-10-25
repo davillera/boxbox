@@ -1,0 +1,33 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ML artifacts & FastF1 cache
+ml_pipeline/cache/
+ml_pipeline/data/
+ml_pipeline/artifacts/
+*.joblib
+*.pkl
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

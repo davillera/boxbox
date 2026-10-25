@@ -1,0 +1,40 @@
+[project]
+name = "boxbox-ml"
+version = "0.1.0"
+description = "BoxBox: FastF1 extraction, feature engineering and XGBoost models for F1 race predictions"
+readme = "README.md"
+authors = [
+    { name = "Daniel Villera", email = "davillera77@gmail.com" }
+]
+requires-python = ">=3.13"
+# Runtime deps only: what the backend needs to load the model and predict.
+dependencies = [
+    "joblib>=1.4",
+    "numpy>=2.0",
+    "pandas>=2.2,<3", # fastf1 does not support pandas 3 yet
+    "scikit-learn>=1.6",
+    "xgboost-cpu>=3.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+# Local-only groups: not installed when another project depends on boxbox-ml.
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+pipeline = [
+    "fastf1>=3.6",
+    "psycopg[binary]>=3.3.6",
+    "pyarrow>=21",
+    "python-dotenv>=1.2.4",
+    "sqlalchemy>=2.1.6",
+]
+
+[tool.uv]
+default-groups = ["dev", "pipeline"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
