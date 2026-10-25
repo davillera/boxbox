@@ -9,11 +9,11 @@ authors = [
 requires-python = ">=3.13"
 # Runtime deps only: what the backend needs to load the model and predict.
 dependencies = [
-    "joblib>=1.4",
-    "numpy>=2.0",
-    "pandas>=2.2,<3", # fastf1 does not support pandas 3 yet
-    "scikit-learn>=1.6",
-    "xgboost-cpu>=3.0",
+    "joblib==1.6.0",
+    "numpy==2.5.4",
+    "pandas==2.3.3", # fastf1 does not support pandas 3 yet
+    "scikit-learn==1.9.1",
+    "xgboost-cpu==3.4.1",
 ]
 
 [build-system]
@@ -23,14 +23,15 @@ build-backend = "uv_build"
 # Local-only groups: not installed when another project depends on boxbox-ml.
 [dependency-groups]
 dev = [
-    "pytest>=9.1.1",
+    "pytest==9.1.1",
 ]
 pipeline = [
-    "fastf1>=3.6",
-    "psycopg[binary]>=3.3.6",
-    "pyarrow>=21",
-    "python-dotenv>=1.2.4",
-    "sqlalchemy>=2.1.6",
+    "fastf1==3.9.0",
+    "psycopg[binary]==3.3.6",
+    "pyarrow==26.0.0",
+    "python-dotenv==1.2.4",
+    "requests-cache==1.3.3",
+    "sqlalchemy==2.1.6",
 ]
 
 [tool.uv]

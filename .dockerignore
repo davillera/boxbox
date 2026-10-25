@@ -1,0 +1,13 @@
+# Build context is the repo root; send only what backend/Dockerfile copies.
+**
+
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/app/**
+!boxbox-ml/pyproject.toml
+!boxbox-ml/README.md
+!boxbox-ml/src/**
+!boxbox-ml/artifacts/model.joblib
+
+**/__pycache__
+**/*.pyc

@@ -13,9 +13,9 @@ venv/
 .ruff_cache/
 
 # ML artifacts & FastF1 cache
-ml_pipeline/cache/
-ml_pipeline/data/
-ml_pipeline/artifacts/
+boxbox-ml/cache/
+boxbox-ml/data/
+boxbox-ml/artifacts/
 *.joblib
 *.pkl
 

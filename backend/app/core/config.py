@@ -26,6 +26,17 @@ class Settings(BaseSettings):
     database_url_unpooled: str | None = Field(default=None, alias="DATABASE_URL_UNPOOLED")
     db_echo: bool = Field(default=False, alias="DB_ECHO")
 
+    # Bundle produced by `boxbox_ml.train`.
+    model_path: Path = Field(
+        default=BACKEND_DIR.parent / "boxbox-ml" / "artifacts" / "model.joblib", alias="MODEL_PATH"
+    )
+    # Comma-separated list of allowed browser origins (the Next.js frontend).
+    cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     @field_validator("database_url", "database_url_unpooled")
     @classmethod
     def _normalize_driver(cls, v: str | None) -> str | None:
