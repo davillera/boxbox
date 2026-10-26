@@ -12,5 +12,5 @@ ARTIFACTS_DIR = ML_ROOT / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "model.joblib"
 METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
 
-# Ground-effect era (2022+) plus the 2026 regulations.
-DEFAULT_SEASONS = [2022, 2023, 2024, 2025, 2026]
+# 2018 onwards: the 2018-2021 seasons improved the walk-forward backtest (log loss 0.2915 -> 0.2788) over 2022+ alone.
+DEFAULT_SEASONS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]

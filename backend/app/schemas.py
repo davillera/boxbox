@@ -38,6 +38,12 @@ class PredictRequest(BaseModel):
         return self
 
 
+class Factor(BaseModel):
+    feature: str
+    value: float | str | None = Field(description="The feature value the model saw (null = unknown)")
+    effect: float = Field(description="TreeSHAP push on the win chance in log-odds; positive helps")
+
+
 class EntryPrediction(BaseModel):
     driver_ref: str
     driver_code: str | None
@@ -46,6 +52,7 @@ class EntryPrediction(BaseModel):
     grid_position: int
     win_probability: float
     podium_probability: float
+    factors: list[Factor] = Field(default_factory=list, description="What moved the win chance the most")
 
 
 class ModelInfo(BaseModel):
@@ -99,6 +106,12 @@ class RaceWeather(BaseModel):
     rainfall: bool
 
 
+class QualifyingEntry(BaseModel):
+    driver_ref: str
+    position: int
+    gap_pct: float | None = Field(description="% off the pole time")
+
+
 class RaceOut(BaseModel):
     season: int
     round: int
@@ -109,6 +122,9 @@ class RaceOut(BaseModel):
     start_utc: datetime
     weather: RaceWeather | None = Field(description="Open-Meteo forecast for the first two hours; null until in range")
     forecast_from: date = Field(description="First day the forecast covers the race start")
+    qualifying: list[QualifyingEntry] | None = Field(
+        default=None, description="Qualifying classification once published (null before), best first"
+    )
 
 
 class ReviewEntry(BaseModel):
@@ -144,7 +160,27 @@ class RaceComparison(ReviewRace):
     field: list[FieldEntry]  # sorted by predicted win probability
 
 
+class CalibrationBin(BaseModel):
+    predicted: float
+    observed: float
+    n: int
+
+
+class CalibrationTarget(BaseModel):
+    applied: bool = Field(description="Kept only if it beat the raw probabilities on held-out races")
+    brier_raw: float
+    brier_calibrated: float
+    bins: list[CalibrationBin]
+
+
+class Calibration(BaseModel):
+    holdout_races: int
+    win: CalibrationTarget
+    podium: CalibrationTarget
+
+
 class TrainingInfo(BaseModel):
+    calibration: Calibration | None = None
     rows: int = Field(description="Driver-race rows the final model was fit on")
     races: int
     data_from: str
@@ -158,3 +194,87 @@ class HealthOut(BaseModel):
     model: ModelInfo
     backtest: Backtest
     training: TrainingInfo
+
+
+class ChampionDriver(BaseModel):
+    driver_ref: str
+    code: str | None
+    driver_name: str
+    team_name: str
+    points: float
+    title_probability: float
+    expected_points: float
+    points_p10: float
+    points_p90: float
+
+
+class ChampionshipOut(BaseModel):
+    season: int
+    remaining_races: int
+    simulations: int
+    drivers: list[ChampionDriver] = Field(description="Sorted by title probability, then points")
+
+
+class FormRace(BaseModel):
+    season: int
+    round: int
+    name: str
+    circuit_ref: str
+    grid: int
+    finish: int | None
+    status: str
+    points: float
+    model_win_probability: float | None = Field(description="What the backtest gave this driver; null outside it")
+
+
+class CircuitRecord(BaseModel):
+    circuit_ref: str
+    circuit_name: str
+    races: int
+    avg_finish: float
+    best_finish: int
+
+
+class DriverDetail(BaseModel):
+    driver_ref: str
+    code: str | None
+    name: str
+    team_ref: str
+    team_name: str
+    season: int
+    season_points: float
+    season_wins: int
+    season_podiums: int
+    races: int
+    wins: int
+    podiums: int
+    recent: list[FormRace] = Field(description="Latest races first")
+    circuits: list[CircuitRecord] = Field(description="Best average finish first (2+ races)")
+
+
+class DriftRace(BaseModel):
+    season: int
+    round: int
+    name: str
+    brier: float = Field(description="Mean squared error of the field's win probabilities in that race")
+    winner_probability: float
+
+
+class LiveRace(BaseModel):
+    season: int
+    round: int
+    name: str
+    predictions: int
+    brier: float
+    favourite_won: bool
+    winner_probability: float | None
+
+
+class MonitorOut(BaseModel):
+    status: str = Field(description="ok, watch (recent backtest error well above normal) or no_data")
+    recent_brier: float
+    overall_brier: float
+    window: int
+    series: list[DriftRace]
+    live: list[LiveRace] = Field(description="Predictions logged before a race, scored against its result")
+    live_available: bool

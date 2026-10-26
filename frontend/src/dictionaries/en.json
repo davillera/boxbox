@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "BoxBox · Who wins on Sunday?",
-    "description": "Win and podium chances for the next F1 race from the starting grid, the circuit and the race-day forecast. An XGBoost model trained on real results since 2022 and refit after every Grand Prix."
+    "description": "Win and podium chances for the next F1 race from the starting grid, the circuit and the race-day forecast. An XGBoost model trained on real results since 2018 and refit after every Grand Prix."
   },
   "header": {
     "tagline": "F1 race predictor",
@@ -11,7 +11,9 @@
     "predict": "Predict",
     "history": "Track record",
     "how": "The model",
-    "nav": "Sections"
+    "nav": "Sections",
+    "championship": "Championship",
+    "drivers": "Drivers"
   },
   "intro": {
     "title": "Who wins on Sunday?",
@@ -28,7 +30,9 @@
     "wind": "Wind",
     "forecast": "Open-Meteo forecast for the first two hours from lights out · {start}",
     "noForecast": "No forecast yet: it arrives on {date}. Until then the model runs without weather and assumes a dry track.",
-    "noRaces": "No races left on the calendar. The grid opens again when the next season's schedule is out."
+    "noRaces": "No races left on the calendar. The grid opens again when the next season's schedule is out.",
+    "countdown": "Lights out in",
+    "qualifying": "Qualifying grid loaded. If there were penalties, move the drivers affected."
   },
   "grid": {
     "title": "Starting grid",
@@ -51,7 +55,9 @@
     "win": "win",
     "podium": "podium",
     "from": "starts P{grid}",
-    "limit": "Heads-up: in the backtest the model's favourite won {model} of races, while “pole sitter wins” was right {baseline} of the time."
+    "limit": "Heads-up: in the backtest the model's favourite won {model} of races, while “pole sitter wins” was right {baseline} of the time.",
+    "share": "Copy link",
+    "shared": "Link copied"
   },
   "table": {
     "title": "Predicted order",
@@ -145,7 +151,7 @@
       "title": "The data",
       "body": [
         "One row of the dataset is **one driver in one Grand Prix**: starting slot, qualifying position, gap to pole in %, team, circuit, weather and how they finished. That's {rows} rows from {races} races.",
-        "We start in 2022 on purpose. That year the technical rules changed (ground-effect cars), and what used to hold, such as who was quick or how much overtaking happened, doesn't carry over well. In ML, **more data isn't always better**: data from a different world than the one you're predicting teaches things that are no longer true. This is called *distribution shift*.",
+        "We use every season since 2018. We first tried 2022 onwards, when the technical rules changed (ground-effect cars), because in ML **more data isn't always better**: data from a different world than the one you're predicting can teach things that are no longer true (*distribution shift*). Instead of assuming it, we measured it with the same race-by-race validation: adding 2018-2021 lowered log loss from 0.2915 to 0.2788 and raised the favourite's hit rate from 53 % to 62 %. With so few winners, the extra years mattered more than the rule change, so they stayed.",
         "Historical weather comes from ERA5 reanalysis, an hour-by-hour reconstruction of the atmosphere, averaged over the two hours from the start. Upcoming races use the forecast, with the same aggregation code. More than 1 mm of rain in that window makes the race count as wet. The threshold was chosen from real cases: Suzuka 2025 was dry and ERA5 showed 0.5 mm.",
         "What we **don't** have: telemetry, lap times, tyre strategy or pit stops. FastF1 offers them, but it needs a paid F1 TV subscription. It's a real limit of the model, and worth keeping in mind when you read its predictions."
       ]
@@ -560,5 +566,100 @@
     "winnerRankHint": "Where the eventual winner sat in our list on average (1 = our favourite).",
     "all": "All races",
     "allHint": "Tap a race to see its full prediction."
+  },
+  "why": {
+    "title": "Why {driver}?",
+    "intro": "Their win chance is {p}. These are the inputs that moved it most, computed with SHAP: how much each input adds to the model's output. Tap another driver in the table to see theirs.",
+    "helps": "Adds",
+    "hurts": "Costs",
+    "unknown": "unknown",
+    "wet": "wet",
+    "dry": "dry",
+    "none": "No input stands out: the prediction sits close to the average.",
+    "note": "Each factor multiplies the odds of winning: ×2 doubles them, ×0.5 halves them. Minor factors are left out.",
+    "features": {
+      "grid": "Starting slot",
+      "quali_position": "Qualifying position",
+      "quali_gap_pct": "Gap to pole (%)",
+      "air_temp_c": "Temperature",
+      "humidity_pct": "Humidity",
+      "wind_speed_ms": "Wind (m/s)",
+      "rainfall": "Rain",
+      "circuit_grid_corr": "Overtaking difficulty",
+      "grid_x_overtaking": "Slot × overtaking difficulty",
+      "drv_avg_finish_5": "Average finish (5 races)",
+      "drv_avg_points_5": "Average points (5 races)",
+      "drv_avg_grid_gain_5": "Places gained (5 races)",
+      "drv_dnf_rate_10": "Retirements (10 races)",
+      "drv_races": "Races started",
+      "drv_circuit_avg_finish": "Average finish at this circuit",
+      "drv_wet_avg_finish": "Average finish in the wet",
+      "team_avg_points_5": "Team points (5 races)",
+      "circuit_ref": "Circuit"
+    }
+  },
+  "championship": {
+    "title": "Who wins the title?",
+    "lede": "We simulate the {races} races left of the {season} season {sims} times and count how often each driver ends up champion.",
+    "driver": "Driver",
+    "points": "Points",
+    "titleOdds": "Title",
+    "expected": "Expected final",
+    "range": "80 % range",
+    "none": "The season is over: no races left to simulate.",
+    "method": "How it works",
+    "methodBody": "Each remaining race is a sequential draw (Plackett-Luce): the model gives every driver a weight from their chance to win the next race and the draw hands out the 25-to-1 points. It leaves out sprints and retirements and uses the same strength at every circuit: a guide, not a forecast.",
+    "unavailable": "We could not read the calendar. Try again in a few minutes.",
+    "sub": "Each driver's title odds, from the model and the current points."
+  },
+  "drivers": {
+    "title": "Drivers",
+    "lede": "The current grid. Open a driver to see recent form and what the model expected from them.",
+    "open": "Open profile",
+    "back": "All drivers",
+    "season": "{season} season",
+    "points": "Points",
+    "wins": "Wins",
+    "podiums": "Podiums",
+    "career": "Since 2018",
+    "races": "Races",
+    "recent": "Last 10 races",
+    "race": "Race",
+    "grid": "Grid",
+    "finish": "Finished",
+    "model": "Model",
+    "modelHint": "Win chance the model gave them before the race (only for audited races).",
+    "circuits": "Best circuits",
+    "avg": "avg",
+    "best": "best",
+    "notFound": "That driver is not in the data.",
+    "unavailable": "We could not load the profile. Try again in a few minutes."
+  },
+  "quality": {
+    "calibrationTitle": "What is a 30 % worth?",
+    "calibrationLede": "When the model says 30 %, does it happen 30 % of the time? Each pair of bars groups predictions of similar probability: the light bar is what was predicted, the dark one what happened.",
+    "win": "Win",
+    "podium": "Podium",
+    "predicted": "Predicted",
+    "observed": "Happened",
+    "applied": "Corrected with calibration: squared error over the last {n} races went from {raw} to {cal}.",
+    "notApplied": "Left uncorrected: over the last {n} races it did not lower the error ({raw} vs {cal}).",
+    "calibrationNote": "The probabilities on this page are the uncorrected model's; live predictions already carry the correction when it is applied.",
+    "driftTitle": "Model watch",
+    "ok": "Stable",
+    "watch": "Look into it",
+    "noData": "No data",
+    "driftLede": "Error of every audited race (lower is better). Last {window}: {recent}; whole record: {overall}. It flags when the recent ones run 25 % above the average.",
+    "liveTitle": "Real predictions vs result",
+    "liveLede": "The predictions people made on the site before each race, compared with what happened.",
+    "liveEmpty": "No races with logged predictions and a result yet.",
+    "liveOff": "The prediction log is not available right now.",
+    "race": "Race",
+    "preds": "Predictions",
+    "error": "Error",
+    "favourite": "Favourite",
+    "hit": "Won",
+    "miss": "Missed",
+    "winnerP": "Winner"
   }
 }

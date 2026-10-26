@@ -21,6 +21,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 from xgboost import XGBClassifier
 
+from boxbox_ml import calibration
 from boxbox_ml.config import ENTRIES_PATH, METRICS_PATH, MODEL_PATH
 from boxbox_ml.features import (
     CATEGORICAL_FEATURES,
@@ -171,12 +172,21 @@ def prepare(entries: pd.DataFrame):
     return feats, to_model_frame(feats, categories), feats[TARGET].astype(int), categories
 
 
-def train(entries_path: Path = ENTRIES_PATH, model_path: Path = MODEL_PATH, metrics_path: Path = METRICS_PATH) -> dict:
+def train(
+    entries_path: Path = ENTRIES_PATH,
+    model_path: Path = MODEL_PATH,
+    metrics_path: Path = METRICS_PATH,
+    since: int | None = None,
+) -> dict:
     entries = pd.read_parquet(entries_path)
+    if since:
+        entries = entries[entries["season"] >= since].reset_index(drop=True)
     feats, X, y, categories = prepare(entries)
 
     bt, review = walk_forward(feats, X, y, entries)
     log.info("backtest %s", bt["model"])
+    calibrators, calib_report = calibration.fit(review)
+    log.info("calibration %s", {k: v["applied"] for k, v in calib_report.items() if isinstance(v, dict)})
 
     final, n_trees = fit_model(X, y, feats["race_key"], np.random.default_rng(SEED))
     importance = pd.Series(final.feature_importances_, index=X.columns).sort_values(ascending=False)
@@ -194,12 +204,14 @@ def train(entries_path: Path = ENTRIES_PATH, model_path: Path = MODEL_PATH, metr
         "features": list(X.columns),
         "backtest": bt,
         "review": review,
+        "calibration": calib_report,
         "feature_importance": {k: round(float(v), 4) for k, v in importance.items()},
     }
 
     bundle = {
         "model": final,
         "categories": categories,
+        "calibrators": calibrators,
         # Raw history drives the form features at inference (see features.build_features).
         "history": entries[INPUT_COLUMNS + ["driver_code", "first_name", "last_name", "team_name", "circuit_name", "country"]],
         "metadata": metadata,
@@ -215,9 +227,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--entries", type=Path, default=ENTRIES_PATH)
     parser.add_argument("--out", type=Path, default=MODEL_PATH)
+    parser.add_argument("--since", type=int, help="first season to train on (default: every season extracted)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    meta = train(args.entries, args.out, args.out.with_name("metrics.json"))
+    meta = train(args.entries, args.out, args.out.with_name("metrics.json"), args.since)
     print(json.dumps({k: meta[k] for k in ("model_version", "n_trees", "races", "data_to", "backtest")}, indent=2))
 
 

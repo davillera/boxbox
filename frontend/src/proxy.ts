@@ -12,5 +12,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
+  // `/og` is the social-card image route: it has no locale.
+  matcher: ["/((?!_next|og(?:/|$)|.*\\..*).*)"],
 };

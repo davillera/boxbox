@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "BoxBox · ¿Quién gana el domingo?",
-    "description": "Predicción de victoria y podio para la próxima carrera de F1 a partir de la parrilla, el circuito y el pronóstico del día de carrera. Modelo XGBoost entrenado con resultados reales desde 2022 y reentrenado después de cada Gran Premio."
+    "description": "Predicción de victoria y podio para la próxima carrera de F1 a partir de la parrilla, el circuito y el pronóstico del día de carrera. Modelo XGBoost entrenado con resultados reales desde 2018 y reentrenado después de cada Gran Premio."
   },
   "header": {
     "tagline": "Predictor de carreras de F1",
@@ -11,7 +11,9 @@
     "predict": "Predecir",
     "history": "Historial",
     "how": "El modelo",
-    "nav": "Secciones"
+    "nav": "Secciones",
+    "championship": "Campeonato",
+    "drivers": "Pilotos"
   },
   "intro": {
     "title": "¿Quién gana el domingo?",
@@ -28,7 +30,9 @@
     "wind": "Viento",
     "forecast": "Pronóstico de Open-Meteo para las dos primeras horas de carrera · {start}",
     "noForecast": "Aún no hay pronóstico: llega el {date}. Hasta entonces el modelo corre sin datos de clima y asume pista seca.",
-    "noRaces": "No quedan carreras en el calendario. La parrilla se abre de nuevo cuando salga el de la próxima temporada."
+    "noRaces": "No quedan carreras en el calendario. La parrilla se abre de nuevo cuando salga el de la próxima temporada.",
+    "countdown": "Semáforo apagado en",
+    "qualifying": "Parrilla de la clasificación ya cargada. Si hubo sanciones, mueve a los pilotos afectados."
   },
   "grid": {
     "title": "Parrilla de salida",
@@ -51,7 +55,9 @@
     "win": "victoria",
     "podium": "podio",
     "from": "sale P{grid}",
-    "limit": "Ojo: en el backtest, el favorito del modelo ganó el {model} de las carreras y «gana el que sale primero», el {baseline}."
+    "limit": "Ojo: en el backtest, el favorito del modelo ganó el {model} de las carreras y «gana el que sale primero», el {baseline}.",
+    "share": "Copiar enlace",
+    "shared": "Enlace copiado"
   },
   "table": {
     "title": "Clasificación prevista",
@@ -145,7 +151,7 @@
       "title": "Los datos",
       "body": [
         "Una fila del dataset es **un piloto en un Gran Premio**: posición de salida, posición en la clasificación del sábado, distancia a la pole en %, equipo, circuito, clima y cómo terminó. En total hay {rows} filas de {races} carreras.",
-        "Arrancamos en 2022 a propósito. Ese año cambió el reglamento técnico (coches de efecto suelo) y lo que funcionaba antes, como quién era rápido o cuánto se adelantaba, no se traslada bien. En ML, **más datos no siempre es mejor**: datos de un mundo distinto al que vas a predecir enseñan cosas que ya no son ciertas. A esto se le llama *distribution shift*.",
+        "Usamos las temporadas desde 2018. Primero probamos solo desde 2022, cuando cambió el reglamento técnico (coches de efecto suelo), porque en ML **más datos no siempre es mejor**: datos de un mundo distinto al que vas a predecir pueden enseñar cosas que ya no son ciertas (*distribution shift*). En vez de suponerlo, lo medimos con la misma validación carrera a carrera: añadir 2018-2021 bajó el log loss de 0,2915 a 0,2788 y subió el acierto del favorito del 53 % al 62 %. Con tan pocos ganadores, los años extra pesaron más que el cambio de reglamento, así que se quedaron.",
         "El clima histórico sale del reanálisis ERA5, una reconstrucción hora a hora de la atmósfera, promediado en las dos horas desde la salida. Para las carreras futuras se usa el pronóstico, con el mismo código de agregación. Si llueve más de 1 mm en esa ventana, la carrera cuenta como mojada. Ese umbral se eligió mirando casos reales: Suzuka 2025 fue seca y ERA5 marcaba 0,5 mm.",
         "Lo que **no** tenemos: telemetría, tiempos por vuelta, estrategia de neumáticos o paradas. FastF1 los ofrece, pero exige una suscripción de pago a F1 TV. Es una limitación real del modelo y la tienes en cuenta al leer sus predicciones."
       ]
@@ -560,5 +566,100 @@
     "winnerRankHint": "En qué puesto de nuestra lista estaba, de media, el piloto que ganó (1 = era el favorito).",
     "all": "Todas las carreras",
     "allHint": "Toca una carrera para ver su predicción completa."
+  },
+  "why": {
+    "title": "¿Por qué {driver}?",
+    "intro": "Su probabilidad de ganar es {p}. Esto es lo que más la movió, calculado con SHAP: cuánto aporta cada dato al resultado del modelo. Toca otro piloto de la tabla para ver el suyo.",
+    "helps": "Suma",
+    "hurts": "Resta",
+    "unknown": "sin dato",
+    "wet": "mojado",
+    "dry": "seco",
+    "none": "Ningún dato destaca: la predicción queda cerca de la media.",
+    "note": "Cada factor multiplica las probabilidades de ganar (odds): ×2 las duplica, ×0,5 las reduce a la mitad. Los factores menores no aparecen.",
+    "features": {
+      "grid": "Puesto de salida",
+      "quali_position": "Posición en clasificación",
+      "quali_gap_pct": "Distancia a la pole (%)",
+      "air_temp_c": "Temperatura",
+      "humidity_pct": "Humedad",
+      "wind_speed_ms": "Viento (m/s)",
+      "rainfall": "Lluvia",
+      "circuit_grid_corr": "Dificultad para adelantar",
+      "grid_x_overtaking": "Salida × dificultad de adelantar",
+      "drv_avg_finish_5": "Llegada media (5 carreras)",
+      "drv_avg_points_5": "Puntos medios (5 carreras)",
+      "drv_avg_grid_gain_5": "Puestos ganados (5 carreras)",
+      "drv_dnf_rate_10": "Abandonos (10 carreras)",
+      "drv_races": "Carreras disputadas",
+      "drv_circuit_avg_finish": "Llegada media en este circuito",
+      "drv_wet_avg_finish": "Llegada media con lluvia",
+      "team_avg_points_5": "Puntos del equipo (5 carreras)",
+      "circuit_ref": "Circuito"
+    }
+  },
+  "championship": {
+    "title": "¿Quién será campeón?",
+    "lede": "Simulamos {sims} veces las {races} carreras que quedan de la temporada {season} y contamos cuántas veces gana cada piloto el título.",
+    "driver": "Piloto",
+    "points": "Puntos",
+    "titleOdds": "Título",
+    "expected": "Final esperado",
+    "range": "Rango 80 %",
+    "none": "La temporada ya terminó: no quedan carreras por simular.",
+    "method": "Cómo se calcula",
+    "methodBody": "Cada carrera restante sale de un sorteo secuencial (Plackett-Luce): el modelo da a cada piloto un peso según su probabilidad de ganar la próxima carrera y el sorteo reparte los puntos del 25 al 1. No simula sprints ni abandonos, y usa la misma fuerza para todos los circuitos: es una guía, no un pronóstico.",
+    "unavailable": "No pudimos leer el calendario. Intenta de nuevo en unos minutos.",
+    "sub": "Probabilidad de título de cada piloto, según el modelo y los puntos actuales."
+  },
+  "drivers": {
+    "title": "Pilotos",
+    "lede": "La parrilla actual. Entra en cada piloto para ver su forma reciente y qué esperaba el modelo de él.",
+    "open": "Ver ficha",
+    "back": "Todos los pilotos",
+    "season": "Temporada {season}",
+    "points": "Puntos",
+    "wins": "Victorias",
+    "podiums": "Podios",
+    "career": "Desde 2018",
+    "races": "Carreras",
+    "recent": "Últimas 10 carreras",
+    "race": "Carrera",
+    "grid": "Salida",
+    "finish": "Llegó",
+    "model": "Modelo",
+    "modelHint": "Probabilidad de ganar que le dio el modelo antes de la carrera (solo en las que se auditaron).",
+    "circuits": "Sus mejores circuitos",
+    "avg": "media",
+    "best": "mejor",
+    "notFound": "Ese piloto no está en los datos.",
+    "unavailable": "No pudimos cargar la ficha. Intenta de nuevo en unos minutos."
+  },
+  "quality": {
+    "calibrationTitle": "¿Cuánto vale un 30 %?",
+    "calibrationLede": "Si el modelo dice 30 %, ¿pasa el 30 % de las veces? Cada par de barras agrupa predicciones de probabilidad parecida: la barra clara es lo previsto y la oscura, lo que ocurrió.",
+    "win": "Ganar",
+    "podium": "Podio",
+    "predicted": "Previsto",
+    "observed": "Ocurrió",
+    "applied": "Corregida con calibración: el error cuadrático en las últimas {n} carreras pasó de {raw} a {cal}.",
+    "notApplied": "Sin corrección: en las últimas {n} carreras no mejoraba el error ({raw} frente a {cal}).",
+    "calibrationNote": "Las probabilidades de esta página son las del modelo sin corregir; las de la predicción en vivo ya llevan la corrección cuando se aplica.",
+    "driftTitle": "Vigilancia del modelo",
+    "ok": "Estable",
+    "watch": "Revisar",
+    "noData": "Sin datos",
+    "driftLede": "Error de cada carrera auditada (menos es mejor). Últimas {window}: {recent}; todo el historial: {overall}. Avisa si las últimas superan en un 25 % a la media.",
+    "liveTitle": "Predicciones reales vs resultado",
+    "liveLede": "Las predicciones que hizo la gente en la web antes de cada carrera, comparadas con lo que pasó.",
+    "liveEmpty": "Todavía no hay carreras con predicciones registradas y resultado.",
+    "liveOff": "El registro de predicciones no está disponible ahora mismo.",
+    "race": "Carrera",
+    "preds": "Predicciones",
+    "error": "Error",
+    "favourite": "Favorito",
+    "hit": "Acertó",
+    "miss": "Falló",
+    "winnerP": "Ganador"
   }
 }

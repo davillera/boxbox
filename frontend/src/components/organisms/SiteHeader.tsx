@@ -10,12 +10,14 @@ export function SiteHeader({
 }: {
   lang: Locale;
   dict: Dictionary["header"];
-  /** Current route after the locale ("", "/review" or "/how"). */
+  /** Current route after the locale ("", "/review", "/championship", "/drivers" or "/how"). */
   path?: string;
 }) {
   const pages = [
     { path: "", label: dict.predict },
     { path: "/review", label: dict.history },
+    { path: "/championship", label: dict.championship },
+    { path: "/drivers", label: dict.drivers },
     { path: "/how", label: dict.how },
   ];
   return (

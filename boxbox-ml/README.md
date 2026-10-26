@@ -29,6 +29,12 @@ subscription, so it isn't used. Caches live in `cache/` (FastF1 and Open-Meteo).
   races: finish, points, retirements, places gained, record at the circuit and in the wet).
 - At inference the scenario is appended to the history as the "next race" and goes through the same
   `build_features`, so training and prediction compute features identically (a test checks this).
+- Seasons from 2018 on (`DEFAULT_SEASONS`). Adding 2018-2021 to the 2022+ ground-effect era lowered the
+  backtest log loss from 0.2915 to 0.2788; `train --since 2022` reproduces the shorter run for comparison.
+- `calibration.py` fits a Platt scaler on the backtest's out-of-sample probabilities and keeps it only if it
+  beats the raw ones on the most recent third of the races. The win calibrator is kept, the podium one is not.
+- `RacePredictor.predict` also returns the top factors per driver: TreeSHAP contributions from XGBoost's
+  `pred_contribs`, in log-odds of winning.
 - Race-by-race walk-forward validation over the last three seasons: before each GP the model is trained
   on earlier races only and predicts the whole field, alongside a baseline that only uses the grid.
   Metrics and each race's prediction (`review`) are written to `artifacts/metrics.json`.

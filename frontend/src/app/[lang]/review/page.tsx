@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { RaceLog } from "@/components/molecules/RaceLog";
 import { RaceVerdict } from "@/components/molecules/RaceVerdict";
+import { CalibrationPanel } from "@/components/organisms/CalibrationPanel";
+import { DriftPanel } from "@/components/organisms/DriftPanel";
 import { OfflineBoard } from "@/components/organisms/OfflineBoard";
 import { ResultsTable } from "@/components/organisms/ResultsTable";
 import { SeasonSummary } from "@/components/organisms/SeasonSummary";
@@ -15,7 +17,7 @@ import {
   type Dictionary,
   type Locale,
 } from "@/dictionaries";
-import { getHealth, getRaceComparison, getReview } from "@/lib/api";
+import { getHealth, getMonitor, getRaceComparison, getReview } from "@/lib/api";
 import { reviewKey } from "@/lib/review";
 
 export async function generateMetadata({
@@ -59,9 +61,10 @@ async function History({
   dict: Dictionary;
   searchParams: PageProps<"/[lang]/review">["searchParams"];
 }) {
-  const [{ race: wanted }, data] = await Promise.all([
+  const [{ race: wanted }, data, monitor] = await Promise.all([
     searchParams,
     Promise.all([getHealth(), getReview()]).catch(() => null),
+    getMonitor().catch(() => null),
   ]);
   const races = data?.[1].races ?? [];
   const selected = races.find((r) => reviewKey(r) === wanted) ?? races.at(-1);
@@ -129,6 +132,16 @@ async function History({
           ))}
         </section>
         <TrustPanel dict={dict.trust} lang={lang} health={health} />
+        {health.training.calibration && (
+          <CalibrationPanel
+            dict={dict.quality}
+            lang={lang}
+            calibration={health.training.calibration}
+          />
+        )}
+        {monitor && (
+          <DriftPanel dict={dict.quality} lang={lang} monitor={monitor} />
+        )}
       </div>
     </div>
   );

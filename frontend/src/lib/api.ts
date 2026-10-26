@@ -8,6 +8,13 @@ export type RaceWeather = {
   rainfall: boolean;
 };
 
+export type QualifyingEntry = {
+  driver_ref: string;
+  position: number;
+  /** % off the pole time. */
+  gap_pct: number | null;
+};
+
 export type Race = {
   season: number;
   round: number;
@@ -19,6 +26,8 @@ export type Race = {
   /** Open-Meteo forecast for the race start; null until it is in range. */
   weather: RaceWeather | null;
   forecast_from: string;
+  /** Qualifying classification once published, best first. */
+  qualifying: QualifyingEntry[] | null;
 };
 
 type ReviewEntry = {
@@ -74,8 +83,19 @@ export type PredictRequest = {
   season: number;
   round: number;
   weather: Weather;
-  entries: { driver_ref: string; grid_position: number }[];
+  entries: {
+    driver_ref: string;
+    grid_position: number;
+    quali_gap_pct?: number;
+  }[];
   normalize: boolean;
+};
+
+/** One feature's TreeSHAP push on a win chance, in log-odds (> 0 helps). */
+export type Factor = {
+  feature: string;
+  value: number | string | null;
+  effect: number;
 };
 
 export type EntryPrediction = {
@@ -86,6 +106,7 @@ export type EntryPrediction = {
   grid_position: number;
   win_probability: number;
   podium_probability: number;
+  factors?: Factor[];
 };
 
 export type ModelInfo = {
@@ -122,7 +143,100 @@ export type Health = {
     n_trees: number;
     /** XGBoost gain share per feature. */
     feature_importance: Record<string, number>;
+    calibration: Calibration | null;
   };
+};
+
+export type CalibrationTarget = {
+  /** Kept only if it beat the raw probabilities on held-out races. */
+  applied: boolean;
+  brier_raw: number;
+  brier_calibrated: number;
+  bins: { predicted: number; observed: number; n: number }[];
+};
+
+export type Calibration = {
+  holdout_races: number;
+  win: CalibrationTarget;
+  podium: CalibrationTarget;
+};
+
+export type ChampionDriver = {
+  driver_ref: string;
+  code: string | null;
+  driver_name: string;
+  team_name: string;
+  points: number;
+  title_probability: number;
+  expected_points: number;
+  points_p10: number;
+  points_p90: number;
+};
+
+export type Championship = {
+  season: number;
+  remaining_races: number;
+  simulations: number;
+  drivers: ChampionDriver[];
+};
+
+export type FormRace = {
+  season: number;
+  round: number;
+  name: string;
+  circuit_ref: string;
+  grid: number;
+  finish: number | null;
+  status: string;
+  points: number;
+  model_win_probability: number | null;
+};
+
+export type DriverDetail = {
+  driver_ref: string;
+  code: string | null;
+  name: string;
+  team_ref: string;
+  team_name: string;
+  season: number;
+  season_points: number;
+  season_wins: number;
+  season_podiums: number;
+  races: number;
+  wins: number;
+  podiums: number;
+  recent: FormRace[];
+  circuits: {
+    circuit_ref: string;
+    circuit_name: string;
+    races: number;
+    avg_finish: number;
+    best_finish: number;
+  }[];
+};
+
+export type Monitor = {
+  status: "ok" | "watch" | "no_data";
+  recent_brier: number;
+  overall_brier: number;
+  window: number;
+  series: {
+    season: number;
+    round: number;
+    name: string;
+    brier: number;
+    winner_probability: number;
+  }[];
+  live: {
+    season: number;
+    round: number;
+    name: string;
+    predictions: number;
+    brier: number;
+    favourite_won: boolean;
+    winner_probability: number | null;
+  }[];
+  live_available: boolean;
 };
 
 export const API_URL = process.env.BOXBOX_API_URL ?? "http://localhost:8000";
@@ -151,3 +265,12 @@ export const getHealth = () => get<Health>("/health");
 
 export const getRaceComparison = (season: number, round: number) =>
   get<RaceComparison>(`/review/${season}/${round}`);
+
+export const getDrivers = () => get<Driver[]>("/drivers");
+
+export const getChampionship = () => get<Championship>("/championship");
+
+export const getDriverDetail = (ref: string) =>
+  get<DriverDetail>(`/drivers/${encodeURIComponent(ref)}`);
+
+export const getMonitor = () => get<Monitor>("/monitor");

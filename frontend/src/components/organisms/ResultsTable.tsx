@@ -15,6 +15,9 @@ type Props = {
   runId: number;
   /** Adds the real finishing position (past races). */
   showFinish?: boolean;
+  /** Makes each driver a button that picks the row explained below the table. */
+  selectedRef?: string;
+  onSelect?: (driverRef: string) => void;
 };
 
 // Ergast letters for unclassified cars.
@@ -34,6 +37,8 @@ export function ResultsTable({
   teamOf,
   runId,
   showFinish = false,
+  selectedRef,
+  onSelect,
 }: Props) {
   // Phones lose the podium column to make room for the result.
   const podiumCol = showFinish ? "hidden sm:table-cell" : "";
@@ -86,13 +91,16 @@ export function ResultsTable({
             {predictions.map((p, i) => (
               <tr
                 key={p.driver_ref}
-                className="border-b border-fg/15 last:border-b-0 hover:bg-raised"
+                className={`border-b border-fg/15 last:border-b-0 hover:bg-raised ${p.driver_ref === selectedRef ? "bg-pirelli/40" : ""}`}
               >
                 <td className="px-2 py-1.5 text-base font-sidewall tabular-nums sm:px-3">
                   {i + 1}
                 </td>
                 <th scope="row" className="px-2 py-1.5 font-normal sm:px-3">
-                  <span className="flex items-center gap-2 sm:gap-2.5">
+                  <Name
+                    onSelect={onSelect && (() => onSelect(p.driver_ref))}
+                    pressed={p.driver_ref === selectedRef}
+                  >
                     <TeamSwatch teamRef={teamOf(p.driver_ref)} />
                     {/* Phones stack code over team; wider screens add the full name. */}
                     <span className="flex flex-col leading-tight sm:flex-row sm:items-center sm:gap-2.5">
@@ -108,7 +116,7 @@ export function ResultsTable({
                         </span>
                       </span>
                     </span>
-                  </span>
+                  </Name>
                 </th>
                 <td className="hidden px-3 py-1.5 text-right text-sm font-bold tabular-nums sm:table-cell">
                   {p.grid_position ? `P${p.grid_position}` : "PL"}
@@ -151,5 +159,29 @@ export function ResultsTable({
         </table>
       </div>
     </section>
+  );
+}
+
+/** The driver cell; a button (with the pressed state) when the row can be picked. */
+function Name({
+  children,
+  onSelect,
+  pressed,
+}: {
+  children: React.ReactNode;
+  onSelect?: () => void;
+  pressed: boolean;
+}) {
+  const layout = "flex items-center gap-2 sm:gap-2.5";
+  if (!onSelect) return <span className={layout}>{children}</span>;
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onSelect}
+      className={`${layout} w-full cursor-pointer text-left underline-offset-4 hover:underline`}
+    >
+      {children}
+    </button>
   );
 }

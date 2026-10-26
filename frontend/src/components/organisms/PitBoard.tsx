@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ArrowDown, TriangleAlert } from "lucide-react";
 import { Joined } from "@/components/atoms/Joined";
 import { BoardSlat } from "@/components/molecules/BoardSlat";
@@ -16,6 +17,8 @@ type Props = {
   /** Backtest winner-pick rates, shown beside the result so the 62 % is read with its limit. */
   pick: { model: number; baseline: number };
   trustLabel: string;
+  /** Shown next to the title once there is a podium (e.g. the share button). */
+  action?: ReactNode;
 };
 
 /** The yellow board held over the pit wall: the three most likely winners, or the call to come in. */
@@ -28,6 +31,7 @@ export function PitBoard({
   error,
   pick,
   trustLabel,
+  action,
 }: Props) {
   return (
     <section
@@ -43,6 +47,9 @@ export function PitBoard({
           <Joined parts={heading} />
         </p>
       </div>
+      {podium && action && (
+        <div className="mb-3 flex justify-end">{action}</div>
+      )}
       {error ? (
         <div
           role="alert"

@@ -14,7 +14,7 @@ from urllib.request import urlopen
 import pandas as pd
 from boxbox_ml.sources import weather
 
-from app.schemas import RaceOut, RaceWeather
+from app.schemas import QualifyingEntry, RaceOut, RaceWeather
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +43,44 @@ def _forecast(lat: float, lon: float, start: pd.Timestamp) -> RaceWeather | None
     return RaceWeather(**w) if w else None
 
 
+QUALIFYING_URL = "https://api.jolpi.ca/ergast/f1/{season}/{round}/qualifying/?limit=40"
+QUALIFYING_WINDOW = timedelta(days=4)  # qualifying is held Friday or Saturday of the race weekend
+
+
+def _lap_seconds(text: str | None) -> float | None:
+    """'1:23.456' -> 83.456; Jolpica leaves a session's time empty when the driver did not take part."""
+    if not text:
+        return None
+    minutes, _, seconds = text.rpartition(":")
+    return float(seconds) + 60 * int(minutes or 0)
+
+
+def _qualifying(season: int, rnd: int, start: pd.Timestamp) -> list[QualifyingEntry] | None:
+    """The qualifying classification, once Jolpica has published it (only asked for races this weekend)."""
+    if start - pd.Timestamp.now(UTC) > QUALIFYING_WINDOW:
+        return None
+    try:
+        races = _get_json(QUALIFYING_URL.format(season=season, round=rnd))["MRData"]["RaceTable"]["Races"]
+        if not races:
+            return None
+        rows = []
+        for q in races[0]["QualifyingResults"]:
+            times = [t for t in (_lap_seconds(q.get(k)) for k in ("Q1", "Q2", "Q3")) if t is not None]
+            rows.append((q["Driver"]["driverId"], int(q["position"]), min(times) if times else None))
+    except Exception:
+        log.warning("qualifying failed for %s R%s", season, rnd, exc_info=True)
+        return None
+    pole = min((t for _, _, t in rows if t is not None), default=None)
+    return [
+        QualifyingEntry(
+            driver_ref=ref,
+            position=pos,
+            gap_pct=None if t is None or pole is None else round((t - pole) / pole * 100, 3),
+        )
+        for ref, pos, t in sorted(rows, key=lambda r: r[1])
+    ]
+
+
 def _fetch_calendar() -> list[RaceOut]:
     races = []
     for r in _get_json(CALENDAR_URL)["MRData"]["RaceTable"]["Races"]:
@@ -60,6 +98,7 @@ def _fetch_calendar() -> list[RaceOut]:
                 start_utc=start.to_pydatetime(),
                 weather=_forecast(lat, lon, start),
                 forecast_from=(start - timedelta(days=weather.FORECAST_HORIZON_DAYS)).date(),
+                qualifying=_qualifying(int(r["season"]), int(r["round"]), start),
             )
         )
     return races

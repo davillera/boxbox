@@ -1,6 +1,6 @@
 # BoxBox
 
-**Who wins on Sunday?** An end-to-end Formula 1 race predictor: real data since 2022, an XGBoost model
+**Who wins on Sunday?** An end-to-end Formula 1 race predictor: real data since 2018, an XGBoost model
 validated race by race and retrained automatically after every Grand Prix, a FastAPI backend and a
 Next.js dashboard in Spanish and English.
 
@@ -17,11 +17,21 @@ Next.js dashboard in Spanish and English.
 ## What it does
 
 - **Predicts the next GP.** Pick a race from the calendar and set the grid (drag a driver, or tap two to
-  swap them). The model gives every one of the 22 drivers a win chance and a podium chance.
+  swap them). The model gives every one of the 22 drivers a win chance and a podium chance. Once qualifying
+  is published the real grid loads by itself, and a countdown runs to lights out.
 - **Nobody types the weather.** It comes from the Open-Meteo forecast for the first two hours of the race,
   as soon as the race is 14 days away or less.
+- **Explains every driver.** Click a driver in the results and a SHAP breakdown shows which inputs (starting
+  slot, form, circuit, weather...) raised or lowered their win chance, and by how much.
+- **Shares a podium card.** *Copy link* keeps the Grand Prix in the URL, and the link previews as a card with
+  the predicted podium (`/og`).
 - **Shows its work.** The *Track record* lists every GP of the last three seasons with what the model predicted
-  before the race (without knowing the result) next to what actually happened.
+  before the race (without knowing the result) next to what actually happened. It also carries a calibration
+  chart ("what is a 30 % worth?") and a drift monitor that compares recent error with the usual one and scores
+  the predictions people logged on the site against the real results.
+- **Simulates the title.** *Championship* runs 20,000 Monte Carlo draws of the races left and shows each
+  driver's title odds.
+- **Driver profiles.** Season line, last 10 races next to what the model expected, and best circuits.
 - **Explains itself.** The *Model* tab is a ~15-minute guide for software engineers who know machine learning
   in theory: features, XGBoost, validation, metrics and MLOps, quoting the deployed model's own numbers.
 - **Learns on its own.** A GitHub Actions workflow spots each new race, retrains, validates and deploys.
@@ -48,13 +58,17 @@ flowchart LR
     G[GitHub Actions<br/>daily 06:00 UTC] -. new race .-> E
 ```
 
-1. **Data.** One row per driver per race (2022 onwards, the ground-effect era): grid slot, qualifying,
-   gap to pole, circuit, weather and result. Currently 2,234 rows from 110 races.
+1. **Data.** One row per driver per race (2018 onwards): grid slot, qualifying, gap to pole, circuit, weather
+   and result. Currently 3,854 rows from 191 races. Starting in 2018 instead of 2022 (the ground-effect era)
+   was tested with the same backtest: log loss went from 0.2915 to 0.2788 and the favourite's hit rate from
+   53 % to 62 %, so the older seasons stayed.
 2. **Features.** 18 columns built only from information available before lights out: grid slot, recent form
    of driver and team (with `shift(1)` so the future never leaks in), how hard the circuit is to pass on,
    wet-weather record, weather. Training and inference share the same `build_features` function.
 3. **Model.** Multiclass XGBoost (win · P2–P3 · rest) with shallow, regularised trees.
-   P(podium) = P(win) + P(P2–P3), so it can never be lower than the win chance.
+   P(podium) = P(win) + P(P2–P3), so it can never be lower than the win chance. A Platt scaler fitted on the
+   backtest corrects the win probability; it is only kept if it beats the raw numbers on held-out races
+   (it does for win, not for podium).
 4. **Validation.** Race-by-race walk-forward over the last three seasons (66 GPs): before each race the model
    is trained only on earlier ones. It is compared with a baseline that only looks at the grid.
 5. **Serving.** The API loads the model once, fetches the calendar and the forecast (cached for an hour),
@@ -69,14 +83,14 @@ The full explanation, written for people who haven't done ML in practice, is in
 
 | Metric | Model | Grid only |
 | --- | ---: | ---: |
-| Log loss (lower is better) | **0.292** | 0.311 |
-| Win AUC | **0.959** | 0.942 |
-| Favourite wins | 53 % | **61 %** |
+| Log loss (lower is better) | **0.279** | 0.310 |
+| Win AUC | **0.962** | 0.943 |
+| Favourite wins | **62 %** | 61 % |
 | Top 3 on the podium | 68 % | **69 %** |
 
-The model orders the whole field better and its probabilities are better calibrated. But when it has to name
-a single winner it is right less often than "the pole sitter wins". That's why the site shows probabilities,
-not a winner. The current figures always live in [`boxbox-ml/artifacts/metrics.json`](boxbox-ml/artifacts/metrics.json) and in `GET /health`.
+The model orders the whole field better and its probabilities are better calibrated. Naming a single winner is
+now a tie with "the pole sitter wins", and the podium picks are still a hair behind it. That's why the site shows
+probabilities, not a winner. The current figures always live in [`boxbox-ml/artifacts/metrics.json`](boxbox-ml/artifacts/metrics.json) and in `GET /health`.
 
 ## Stack
 
@@ -180,13 +194,16 @@ docker run --env-file backend/.env -p 8000:8000 boxbox-api
 
 | Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/health` | Model version, backtest metrics and training details (rows, trees, feature importance) |
-| GET | `/races/upcoming` | Upcoming GPs with the race-start forecast; `weather` is `null` until the race is within the 14-day forecast range |
+| GET | `/health` | Model version, backtest metrics and training details (rows, trees, feature importance, calibration) |
+| GET | `/races/upcoming` | Upcoming GPs with the race-start forecast (`weather` is `null` until the race is within the 14-day range) and the qualifying classification (`qualifying`, `null` until published) |
 | GET | `/drivers` | Current grid, with each driver's starting slot at the last race |
+| GET | `/drivers/{driver_ref}` | Driver sheet: season line, last 10 races with the model's win chance, best circuits |
+| GET | `/championship` | Title odds from a 20,000-draw Monte Carlo of the races left (Plackett-Luce finishing orders) |
+| GET | `/monitor` | Drift check (recent vs overall backtest error) and logged predictions scored against results |
 | GET | `/circuits` | Circuits the model knows |
 | GET | `/review` | Race-by-race backtest: the model's favourite vs the actual winner |
 | GET | `/review/{season}/{round}` | One backtest race with the full predicted field and the real finishing positions |
-| POST | `/predict` | Win and podium probability per driver |
+| POST | `/predict` | Win and podium probability per driver, plus the top factors behind each win chance (TreeSHAP, in log-odds) |
 
 ```http
 POST /predict
@@ -248,11 +265,14 @@ through `data-anim` attributes and switch off when the system asks for reduced m
 
 ## Limitations
 
-- **Little data.** About 2,000 rows and around a hundred winners: every rare win weighs a lot.
+- **Little data.** About 3,900 rows and under 200 winners: every rare win weighs a lot.
 - **No telemetry.** FastF1 needs an F1 TV subscription for laps and telemetry, so the model can't see race pace,
   strategy, tyres or safety cars.
 - **The grid is a guess** until qualifying is run: by default it uses the last race's starting order.
-- **No drift monitoring** yet: predictions are logged, but nothing alerts when the model gets worse.
+- **Drift is watched, not acted on.** The monitor flags when recent error runs 25 % above normal, but nothing
+  retrains or rolls back by itself because of it.
+- **The title simulation is a guide.** It ignores sprints and retirements and uses one strength per driver for
+  every circuit.
 
 ## Data and credits
 

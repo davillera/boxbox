@@ -1,7 +1,20 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.api.deps import EngineDep, ServiceDep
-from app.schemas import CircuitOut, DriverOut, HealthOut, PredictRequest, PredictResponse, RaceComparison, RaceOut, ReviewOut
+from app.schemas import (
+    ChampionshipOut,
+    CircuitOut,
+    DriverDetail,
+    DriverOut,
+    HealthOut,
+    MonitorOut,
+    PredictRequest,
+    PredictResponse,
+    RaceComparison,
+    RaceOut,
+    ReviewOut,
+)
+from app.services import insights
 from app.services.calendar import upcoming_races
 from app.services.prediction import PredictionInputError, record_predictions
 
@@ -22,6 +35,15 @@ def list_circuits(service: ServiceDep) -> list[CircuitOut]:
 def list_drivers(service: ServiceDep) -> list[DriverOut]:
     """Current grid (entrants of the most recent race in the training data)."""
     return service.drivers()
+
+
+@router.get("/drivers/{driver_ref}", response_model=DriverDetail, tags=["catalog"])
+def driver_detail(driver_ref: str, service: ServiceDep) -> DriverDetail:
+    """Season line, recent form (with what the model gave the driver) and best circuits."""
+    detail = insights.driver_detail(service, driver_ref)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="unknown driver")
+    return detail
 
 
 @router.get("/races/upcoming", response_model=list[RaceOut], tags=["catalog"])
@@ -46,6 +68,22 @@ def race_comparison(season: int, round: int, service: ServiceDep) -> RaceCompari
     if race is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="race not in the backtest")
     return race
+
+
+@router.get("/championship", response_model=ChampionshipOut, tags=["meta"])
+def championship(service: ServiceDep) -> ChampionshipOut:
+    """Title odds from simulating the rest of the season (Monte Carlo, Plackett-Luce finishing orders)."""
+    try:
+        left = [r.circuit_ref for r in upcoming_races(service.last_race) if r.season == service.last_race[0]]
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="race calendar unavailable") from exc
+    return insights.championship(service, left)
+
+
+@router.get("/monitor", response_model=MonitorOut, tags=["meta"])
+def monitor(service: ServiceDep, engine: EngineDep) -> MonitorOut:
+    """Drift check: recent backtest error vs the overall one, and logged predictions scored against results."""
+    return insights.monitor(service, engine)
 
 
 @router.post("/predict", response_model=PredictResponse, tags=["predict"])

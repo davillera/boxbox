@@ -12,6 +12,7 @@ from app.schemas import (
     CircuitOut,
     DriverOut,
     EntryPrediction,
+    Factor,
     FieldEntry,
     ModelInfo,
     PredictRequest,
@@ -168,7 +169,7 @@ class PredictionService:
             win, podium = normalize_field(win, podium)
 
         predictions = []
-        for entry, p_win, p_podium in zip(req.entries, win, podium):
+        for entry, p_win, p_podium, result in zip(req.entries, win, podium, results):
             info = self._drivers[entry.driver_ref]
             predictions.append(
                 EntryPrediction(
@@ -179,6 +180,7 @@ class PredictionService:
                     grid_position=entry.grid_position,
                     win_probability=round(float(p_win), 4),
                     podium_probability=round(float(p_podium), 4),
+                    factors=[Factor(feature=f.feature, value=f.value, effect=f.effect) for f in result.factors],
                 )
             )
         predictions.sort(key=lambda p: p.win_probability, reverse=True)

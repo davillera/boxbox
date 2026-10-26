@@ -1,6 +1,7 @@
 import { CloudRain, Droplets, Sun, Thermometer, Wind } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { SelectField } from "@/components/atoms/SelectField";
+import { Countdown } from "@/components/molecules/Countdown";
 import { fill, type Dictionary, type Locale } from "@/dictionaries";
 import type { Race } from "@/lib/api";
 
@@ -43,6 +44,12 @@ export function RaceSetup({ dict, lang, races, value, onChange }: Props) {
           label: `R${r.round} · ${r.name} · ${date(r.start_utc, { day: "numeric", month: "short" })}`,
         }))}
       />
+      <Countdown to={race.start_utc} label={dict.countdown} />
+      {race.qualifying && (
+        <p className="border-3 border-ink bg-pirelli px-3 py-2 text-sm leading-relaxed font-bold text-ink">
+          {dict.qualifying}
+        </p>
+      )}
       {w ? (
         <figure className="flex flex-col gap-2">
           {/* Re-mounts per race so the readings refresh like telemetry (PRESETS.readout). */}

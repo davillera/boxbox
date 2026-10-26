@@ -6,6 +6,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 
 from boxbox_ml.features import build_features, to_model_frame
 
@@ -25,11 +26,24 @@ class Scenario:
 
 
 @dataclass(frozen=True)
+class Factor:
+    """One feature's push on a driver's win chance (TreeSHAP, in log-odds; >0 helps)."""
+
+    feature: str
+    value: float | str | None
+    effect: float
+
+
+@dataclass(frozen=True)
 class Prediction:
     driver_ref: str
     circuit_ref: str
     win_probability: float
     podium_probability: float
+    factors: tuple[Factor, ...] = ()
+
+
+TOP_FACTORS = 4
 
 
 class RacePredictor:
@@ -38,6 +52,7 @@ class RacePredictor:
         self.categories: dict[str, list[str]] = bundle["categories"]
         self.history: pd.DataFrame = bundle["history"]
         self.metadata: dict = bundle["metadata"]
+        self.calibrators: dict = bundle.get("calibrators", {})
         # The columns this model was trained on; build_features may compute more.
         self.feature_columns: list[str] = self.model.get_booster().feature_names
         latest = self.history.sort_values(["season", "round"]).groupby("driver_ref").tail(1)
@@ -94,12 +109,46 @@ class RacePredictor:
             feats = feats[feats["is_upcoming"]].set_index("driver_ref").loc[upcoming["driver_ref"]]
             X = to_model_frame(feats.reset_index(), self.categories)[self.feature_columns]
             proba = self.model.predict_proba(X)
-            for i, p in zip(batch, proba):
-                win = float(np.clip(p[0], 0, 1))
+            win, podium = self._calibrate(proba[:, 0], proba[:, 0] + proba[:, 1])
+            factors = self._factors(X)
+            for k, i in enumerate(batch):
                 out[i] = Prediction(
                     driver_ref=rows[i]["driver_ref"],
                     circuit_ref=rows[i]["circuit_ref"],
-                    win_probability=win,
-                    podium_probability=float(np.clip(p[0] + p[1], win, 1)),
+                    win_probability=float(win[k]),
+                    podium_probability=float(podium[k]),
+                    factors=factors[k],
                 )
         return out
+
+    def _calibrate(self, win: np.ndarray, podium: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Map raw probabilities through the backtest-fitted calibrators (identity when none was kept)."""
+        if (cal := self.calibrators.get("win")) is not None:
+            win = cal(win)
+        if (cal := self.calibrators.get("podium")) is not None:
+            podium = cal(podium)
+        win = np.clip(win, 0, 1)
+        return win, np.clip(np.maximum(podium, win), win, 1)
+
+    def _factors(self, X: pd.DataFrame) -> list[tuple[Factor, ...]]:
+        """The features that moved each row's win chance the most, from TreeSHAP contributions."""
+        contribs = self.model.get_booster().predict(xgb.DMatrix(X, enable_categorical=True), pred_contribs=True)
+        win = contribs[:, 0, :-1]  # class 0 = win; the last column is the bias
+        out = []
+        for row, effects in zip(X.itertuples(index=False), win):
+            top = np.argsort(-np.abs(effects))[:TOP_FACTORS]
+            out.append(
+                tuple(
+                    Factor(X.columns[j], _plain(row[j]), round(float(effects[j]), 4))
+                    for j in top
+                    if abs(effects[j]) > 1e-3
+                )
+            )
+        return out
+
+
+def _plain(v) -> float | str | None:
+    """A JSON-friendly feature value (NaN -> None)."""
+    if v is None or v is pd.NA or (isinstance(v, float) and np.isnan(v)):
+        return None
+    return v if isinstance(v, str) else float(v)

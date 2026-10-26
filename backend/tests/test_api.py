@@ -83,7 +83,13 @@ def test_upcoming_races_skip_started_and_get_the_forecast_in_range(client, monke
         "surface_pressure": [1010, 1010],
         "wind_speed_10m": [2.0, 4.0],
     }
+    quali = {"MRData": {"RaceTable": {"Races": [{"QualifyingResults": [
+        {"position": "1", "Driver": {"driverId": "norris"}, "Q1": "1:30.000", "Q2": "1:29.500", "Q3": "1:29.000"},
+        {"position": "2", "Driver": {"driverId": "max_verstappen"}, "Q1": "1:30.500", "Q2": "1:29.900", "Q3": "1:29.890"},
+        {"position": "3", "Driver": {"driverId": "piastri"}, "Q1": "", "Q2": None, "Q3": None},
+    ]}]}}}
     payloads = {
+        "qualifying": quali,
         "jolpi": {"MRData": {"RaceTable": {"Races": [race(98, now - timedelta(hours=1)), race(99, start), race(100, now + timedelta(days=40))]}}},
         "open-meteo": {"hourly": hourly},
     }
@@ -94,6 +100,12 @@ def test_upcoming_races_skip_started_and_get_the_forecast_in_range(client, monke
     assert [r["round"] for r in races] == [99, 100]  # R98 already started
     assert races[0]["weather"] == {"air_temp_c": 21.0, "humidity_pct": 55.0, "wind_speed_ms": 3.0, "precipitation_mm": 1.5, "rainfall": True}
     assert races[1]["weather"] is None  # beyond the forecast horizon
+    # Qualifying is only fetched for the race this weekend, with gaps measured from the pole time.
+    assert [(q["driver_ref"], q["position"]) for q in races[0]["qualifying"]] == [("norris", 1), ("max_verstappen", 2), ("piastri", 3)]
+    assert races[0]["qualifying"][0]["gap_pct"] == 0
+    assert races[0]["qualifying"][1]["gap_pct"] == round((89.89 - 89.0) / 89.0 * 100, 3)
+    assert races[0]["qualifying"][2]["gap_pct"] is None
+    assert races[1]["qualifying"] is None
 
 
 def test_predict_returns_probabilities_and_logs_history(client, engine):
@@ -159,3 +171,70 @@ def test_normalize_field_caps_podium():
     assert np.isclose(win.sum(), 1)
     assert np.isclose(podium.sum(), 3)
     assert (podium <= 1).all() and (podium >= win).all()
+
+
+def test_predict_explains_each_driver(client):
+    preds = client.post("/predict", json=USGP).json()["predictions"]
+    for p in preds:
+        assert 0 < len(p["factors"]) <= 4
+        assert all({"feature", "value", "effect"} <= f.keys() for f in p["factors"])
+        magnitudes = [abs(f["effect"]) for f in p["factors"]]
+        assert magnitudes == sorted(magnitudes, reverse=True)
+    # Starting first is worth more than starting 15th, so the slot must push the win chance up.
+    pole = client.post("/predict", json={**USGP, "entries": [{"driver_ref": "norris", "grid_position": 1}]}).json()
+    grid = next(f for f in pole["predictions"][0]["factors"] if f["feature"] == "grid")
+    assert grid["value"] == 1 and grid["effect"] > 0
+
+
+def test_calibration_is_reported(client):
+    cal = client.get("/health").json()["training"]["calibration"]
+    assert cal["holdout_races"] > 0
+    for target in (cal["win"], cal["podium"]):
+        assert isinstance(target["applied"], bool) and target["bins"]
+        assert all(0 <= b["predicted"] <= 1 and 0 <= b["observed"] <= 1 for b in target["bins"])
+
+
+def test_driver_sheet(client):
+    d = client.get("/drivers/norris").json()
+    assert d["name"] == "Lando Norris" and d["wins"] >= d["season_wins"]
+    assert 0 < len(d["recent"]) <= 10
+    keys = [(r["season"], r["round"]) for r in d["recent"]]
+    assert keys == sorted(keys, reverse=True)  # latest first
+    assert any(r["model_win_probability"] is not None for r in d["recent"])
+    assert client.get("/drivers/nobody").status_code == 404
+
+
+def test_championship_odds(client, monkeypatch):
+    from app.api import routes
+
+    season = NEXT_SEASON
+    left = [
+        calendar.RaceOut(
+            season=season, round=NEXT_ROUND + i, name=f"GP {i}", circuit_ref="americas", circuit_name="COTA", country="USA",
+            start_utc=datetime.now(UTC) + timedelta(days=7 * (i + 1)), weather=None, forecast_from=datetime.now(UTC).date(),
+        )
+        for i in range(3)
+    ]
+    monkeypatch.setattr(routes, "upcoming_races", lambda after: left)
+    body = client.get("/championship").json()
+    assert body["remaining_races"] == 3 and body["season"] == season
+    assert abs(sum(d["title_probability"] for d in body["drivers"]) - 1) < 1e-6
+    odds = [d["title_probability"] for d in body["drivers"]]
+    assert odds == sorted(odds, reverse=True)
+    assert all(d["points_p10"] >= d["points"] and d["points_p90"] >= d["expected_points"] - 1e-6 for d in body["drivers"])
+
+    monkeypatch.setattr(routes, "upcoming_races", lambda after: [])
+    done = client.get("/championship").json()
+    assert done["remaining_races"] == 0
+    # With nothing left to race, the points leader is champion for sure.
+    leader = max(done["drivers"], key=lambda d: d["points"])
+    assert leader["title_probability"] == 1.0 and leader["expected_points"] == leader["points"]
+
+
+def test_monitor(client, engine):
+    client.post("/predict", json=USGP)  # logs predictions for a race that has no result yet
+    body = client.get("/monitor").json()
+    assert body["status"] in {"ok", "watch"}
+    assert len(body["series"]) == len(client.get("/review").json()["races"])
+    assert body["live_available"] and body["live"] == []  # the logged race has not been scored
+    assert all(0 <= s["brier"] <= 1 for s in body["series"])
