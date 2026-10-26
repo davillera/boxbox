@@ -15,8 +15,11 @@ export function RaceMotion() {
   useEffect(() => {
     if (!motionOK()) return;
     const seen = new WeakSet<Element>();
+    // Posed and waiting for the viewport.
+    const waiting = new Set<HTMLElement>();
     const run = (el: HTMLElement) => {
       seen.add(el);
+      waiting.delete(el);
       PRESETS[el.dataset.anim ?? ""]?.play(el, Number(el.dataset.delay ?? 0));
     };
     const io = new IntersectionObserver(
@@ -44,6 +47,7 @@ export function RaceMotion() {
         else run(el);
       } else {
         PRESETS[el.dataset.anim ?? ""]?.hide?.(el);
+        waiting.add(el);
         io.observe(el);
       }
     }
@@ -61,7 +65,10 @@ export function RaceMotion() {
             if (seen.has(el)) continue;
             PRESETS[el.dataset.anim ?? ""]?.hide?.(el);
             if (visible(el)) run(el);
-            else io.observe(el);
+            else {
+              waiting.add(el);
+              io.observe(el);
+            }
           }
         }
     });
@@ -74,9 +81,25 @@ export function RaceMotion() {
     };
     document.addEventListener("pointerover", onOver);
 
+    // Safety net for fast scrolling: once the page settles, anything already passed plays.
+    let settleTimer = 0;
+    const onScroll = () => {
+      clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        for (const el of waiting)
+          if (el.getBoundingClientRect().top < innerHeight) {
+            io.unobserve(el);
+            run(el);
+          }
+      }, 150);
+    };
+    addEventListener("scroll", onScroll, { passive: true });
+
     return () => {
       io.disconnect();
       mo.disconnect();
+      clearTimeout(settleTimer);
+      removeEventListener("scroll", onScroll);
       document.removeEventListener("pointerover", onOver);
     };
   }, []);

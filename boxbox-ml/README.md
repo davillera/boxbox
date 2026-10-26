@@ -30,8 +30,10 @@ suscripción de F1 TV, por eso no se usa. Caché en `cache/` (FastF1 y Open-Mete
   circuito y en mojado).
 - En la inferencia, el escenario se añade como "próxima carrera" al histórico y pasa por el mismo
   `build_features`, así que entrenamiento y predicción calculan las variables igual (lo comprueba un test).
-- Validación cronológica: el último 20 % de carreras queda fuera del entrenamiento, junto con un
-  baseline que solo usa la parrilla. Ver `artifacts/metrics.json`.
+- Validación walk-forward carrera a carrera sobre las tres últimas temporadas: antes de cada GP se
+  entrena solo con las carreras anteriores y se predice su parrilla completa, junto con un baseline que
+  solo usa la parrilla. Las métricas y la predicción de cada carrera (`review`) van en `artifacts/metrics.json`.
+- El reentreno después de cada GP lo hace `.github/workflows/retrain.yml` (ver el README de la raíz).
 
 ## Uso desde Python (backend)
 

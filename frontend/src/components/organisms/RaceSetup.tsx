@@ -49,7 +49,7 @@ export function RaceSetup({ dict, lang, races, value, onChange }: Props) {
           <dl
             key={value}
             data-anim="readout"
-            className="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-[3px] border-3 border-fg bg-fg"
+            className="grid grid-cols-2 gap-[3px] border-3 border-fg bg-fg"
           >
             <Reading
               icon={w.rainfall ? CloudRain : Sun}
