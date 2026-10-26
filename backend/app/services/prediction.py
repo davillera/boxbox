@@ -12,9 +12,13 @@ from app.schemas import (
     CircuitOut,
     DriverOut,
     EntryPrediction,
+    FieldEntry,
     ModelInfo,
     PredictRequest,
     PredictResponse,
+    RaceComparison,
+    ReviewEntry,
+    ReviewOut,
 )
 
 log = logging.getLogger(__name__)
@@ -42,6 +46,50 @@ def normalize_field(win: np.ndarray, podium: np.ndarray) -> tuple[np.ndarray, np
     return win, np.clip(np.maximum(podium, win), 0.0, 1.0)
 
 
+def compare_race(race: dict) -> RaceComparison:
+    """Normalise a backtest race exactly like a live prediction and score it against the result."""
+    field = race["field"]
+    win, podium = normalize_field(np.array([e["p_win"] for e in field]), np.array([e["p_podium"] for e in field]))
+    entries = sorted(
+        (
+            FieldEntry(
+                driver_ref=e["driver_ref"],
+                driver_code=e["code"],
+                driver_name=e["driver_name"],
+                team_ref=e["team_ref"],
+                team_name=e["team_name"],
+                grid_position=e["grid"],
+                finish=e["finish"],
+                status=e["status"],
+                win_probability=round(float(w), 4),
+                podium_probability=round(float(p), 4),
+            )
+            for e, w, p in zip(field, win, podium)
+        ),
+        key=lambda e: e.win_probability,
+        reverse=True,
+    )
+    winner_rank = next(i for i, e in enumerate(entries, 1) if e.finish == 1)
+    winner = entries[winner_rank - 1]
+    top3 = sorted(entries, key=lambda e: e.podium_probability, reverse=True)[:3]
+
+    def short(e: FieldEntry) -> ReviewEntry:
+        return ReviewEntry(driver_ref=e.driver_ref, code=e.driver_code, grid=e.grid_position, win_probability=e.win_probability)
+
+    return RaceComparison(
+        season=race["season"],
+        round=race["round"],
+        name=race["name"],
+        circuit_ref=race["circuit_ref"],
+        winner=short(winner),
+        pick=short(entries[0]),
+        winner_rank=winner_rank,
+        podium_hits=sum(e.finish is not None and e.finish <= 3 for e in top3),
+        pole_won=winner.grid_position == 1,
+        field=entries,
+    )
+
+
 class PredictionService:
     def __init__(self, predictor: RacePredictor):
         self.predictor = predictor
@@ -50,11 +98,13 @@ class PredictionService:
             name=meta["model_name"], version=meta["model_version"], trained_at=meta["trained_at"], data_to=meta["data_to"]
         )
         self.backtest = Backtest.model_validate(meta["backtest"])
+        self.comparisons = {(r.season, r.round): r for r in map(compare_race, meta["review"])}
+        self.review = ReviewOut(races=list(self.comparisons.values()))
         latest = predictor.history.sort_values(["season", "round"]).groupby("driver_ref").tail(1)
         self._drivers = latest.set_index("driver_ref")[["driver_code", "first_name", "last_name", "team_name"]].to_dict("index")
         self._circuits = set(predictor.categories["circuit_ref"])
         last = predictor.history.sort_values(["season", "round"]).iloc[-1]
-        self._last_race = (int(last["season"]), int(last["round"]))
+        self.last_race = (int(last["season"]), int(last["round"]))
 
     @classmethod
     def from_path(cls, path: Path) -> "PredictionService":
@@ -88,7 +138,7 @@ class PredictionService:
         if unknown:
             raise PredictionInputError(f"unknown driver_ref: {', '.join(unknown)}")
         # The model always scores the *next* race with current form; a past race would be mislabelled.
-        last_season, last_round = self._last_race
+        last_season, last_round = self.last_race
         if req.season is not None and (
             req.season < last_season or (req.season == last_season and req.round is not None and req.round <= last_round)
         ):

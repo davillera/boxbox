@@ -38,11 +38,27 @@ uv run uvicorn app.main:app --reload              # http://localhost:8000/docs
 uv run pytest
 ```
 
+### Después de cada Gran Premio
+
+El modelo aprende de cada carrera al reentrenarse con su resultado:
+
+```bash
+cd boxbox-ml
+uv run python -m boxbox_ml.extract --seasons 2026   # baja el nuevo resultado y su clima
+uv run python -m boxbox_ml.load_db                   # lo sube a Neon
+uv run python -m boxbox_ml.train                     # reentrena; la revisión carrera a carrera va en metrics.json
+```
+
+Luego reinicia la API para que cargue el modelo nuevo.
+
 | Método | Ruta        | Descripción                                                       |
 | ------ | ----------- | ----------------------------------------------------------------- |
 | GET    | `/health`   | Estado, versión del modelo y métricas del backtest                |
 | GET    | `/circuits` | Circuitos conocidos por el modelo                                 |
 | GET    | `/drivers`  | Parrilla actual (participantes de la última carrera, con `last_grid`) |
+| GET    | `/races/upcoming` | Próximos GP del calendario (Jolpica) con el pronóstico de Open-Meteo para la salida; `weather` es `null` hasta que la carrera entra en los 14 días del pronóstico. Caché de 1 h |
+| GET    | `/review`   | Backtest carrera a carrera (3 últimas temporadas): favorito del modelo, entrenado solo con carreras anteriores, frente al ganador real |
+| GET    | `/review/{season}/{round}` | Una carrera del backtest: la parrilla prevista completa junto a la posición final real |
 | POST   | `/predict`  | Probabilidad de victoria y podio por piloto; queda registrada en `prediction_history` |
 
 ```json
@@ -54,7 +70,7 @@ POST /predict
     { "driver_ref": "norris", "grid_position": 1 },
     { "driver_ref": "max_verstappen", "grid_position": 2, "quali_gap_pct": 0.08 }
   ],
-  "season": 2026, "round": 18,
+  "season": 2026, "round": 19,
   "normalize": false
 }
 ```

@@ -7,9 +7,24 @@ import { pct, shortTeam } from "@/lib/teams";
 type Props = {
   dict: Dictionary["table"];
   lang: Locale;
-  predictions: EntryPrediction[];
+  predictions: (EntryPrediction & {
+    finish?: number | null;
+    status?: string;
+  })[];
   teamOf: (driverRef: string) => string | undefined;
   runId: number;
+  /** Adds the real finishing position (past races). */
+  showFinish?: boolean;
+};
+
+// Ergast letters for unclassified cars.
+const OUT: Record<string, string> = {
+  R: "DNF",
+  D: "DSQ",
+  W: "DNS",
+  N: "NC",
+  E: "EX",
+  F: "DNQ",
 };
 
 export function ResultsTable({
@@ -18,7 +33,10 @@ export function ResultsTable({
   predictions,
   teamOf,
   runId,
+  showFinish = false,
 }: Props) {
+  // Phones lose the podium column to make room for the result.
+  const podiumCol = showFinish ? "hidden sm:table-cell" : "";
   const maxWin = Math.max(...predictions.map((p) => p.win_probability), 0.01);
   return (
     <section
@@ -50,9 +68,17 @@ export function ResultsTable({
               <th scope="col" className="px-2 py-2 sm:w-[28%] sm:px-3">
                 {dict.win}
               </th>
-              <th scope="col" className="px-2 py-2 sm:w-[28%] sm:px-3">
+              <th
+                scope="col"
+                className={`px-2 py-2 sm:w-[28%] sm:px-3 ${podiumCol}`}
+              >
                 {dict.podium}
               </th>
+              {showFinish && (
+                <th scope="col" className="w-16 px-2 py-2 text-right sm:px-3">
+                  {dict.finish}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -95,7 +121,7 @@ export function ResultsTable({
                     delay={i * 25}
                   />
                 </td>
-                <td className="px-2 py-1.5 sm:px-3">
+                <td className={`px-2 py-1.5 sm:px-3 ${podiumCol}`}>
                   <ProbabilityBar
                     tone="podium"
                     value={p.podium_probability}
@@ -103,6 +129,21 @@ export function ResultsTable({
                     delay={i * 25}
                   />
                 </td>
+                {showFinish && (
+                  <td className="px-2 py-1.5 text-right sm:px-3">
+                    {p.status && /^\d+$/.test(p.status) ? (
+                      <span
+                        className={`inline-block min-w-11 border-2 px-1.5 text-center text-sm font-black tabular-nums ${Number(p.status) <= 3 ? "border-ink bg-pirelli text-ink" : "border-transparent"}`}
+                      >
+                        P{p.status}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-black text-redline">
+                        {OUT[p.status ?? ""] ?? p.status}
+                      </span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

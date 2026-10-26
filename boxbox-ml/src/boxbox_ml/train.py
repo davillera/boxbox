@@ -2,8 +2,8 @@
 
     uv run python -m boxbox_ml.train
 
-Evaluation is a chronological backtest: for each of the last BACKTEST_SEASONS
-seasons, train on every earlier race and predict that whole season.
+Evaluation is a race-by-race walk-forward over the last BACKTEST_SEASONS
+seasons: before each race, train on every earlier race and predict it.
 Early stopping always uses the latest races of the training span. The exported
 model is refit on every race with the tree count found on the full history.
 """
@@ -100,31 +100,69 @@ def fit_model(X: pd.DataFrame, y: pd.Series, race_key: pd.Series, rng: np.random
     return model, n_trees
 
 
-def _grid_baseline(X: pd.DataFrame, y: pd.Series, train: pd.Series) -> np.ndarray:
+def _grid_baseline(X: pd.DataFrame, y: pd.Series, train: pd.Series, test: pd.Series) -> np.ndarray:
     grid = X[["grid"]].fillna(X["grid"].max())
-    return LogisticRegression(max_iter=1000).fit(grid[train], y[train]).predict_proba(grid[~train])
+    return LogisticRegression(max_iter=1000).fit(grid[train], y[train]).predict_proba(grid[test])
 
 
-def backtest(feats: pd.DataFrame, X: pd.DataFrame, y: pd.Series, seasons: int = BACKTEST_SEASONS) -> dict:
-    """Season-by-season walk-forward evaluation; metrics are pooled over all predicted races."""
+def walk_forward(
+    feats: pd.DataFrame, X: pd.DataFrame, y: pd.Series, entries: pd.DataFrame, seasons: int = BACKTEST_SEASONS
+) -> tuple[dict, list[dict]]:
+    """Race-by-race backtest over the last `seasons` seasons, the way the live model learns.
+
+    Before each GP: train on every earlier race and predict its whole field; after it, the
+    result joins the training data. Returns metrics pooled over all those races (model vs a
+    grid-only baseline) and every race's predicted field next to how it actually finished.
+    """
     rng = np.random.default_rng(SEED)
-    model_p, base_p, idx = [], [], []
-    per_season = {}
-    for season in sorted(feats["season"].unique())[-seasons:]:
-        train, test = feats["season"] < season, feats["season"] == season
-        model, n_trees = fit_model(X[train], y[train], feats.loc[train, "race_key"], rng)
+    first = sorted(feats["season"].unique())[-seasons]
+    keys = sorted(feats.loc[feats["season"] >= first, "race_key"].unique())
+    info = entries.drop_duplicates(["season", "round", "driver_ref"]).set_index(["season", "round", "driver_ref"])
+    model_p, base_p, races = [], [], []
+    for key in keys:
+        train, test = feats["race_key"] < key, feats["race_key"] == key
+        model, _ = fit_model(X[train], y[train], feats.loc[train, "race_key"], rng)
         p = model.predict_proba(X[test])
-        per_season[int(season)] = {**evaluate(p, y[test], feats.loc[test, "race_key"]), "n_trees": n_trees}
         model_p.append(p)
-        base_p.append(_grid_baseline(X, y, train)[test[~train].to_numpy()])
-        idx.append(test[test].index)
-    idx = np.concatenate(idx)
-    return {
-        "model": evaluate(np.vstack(model_p), y[idx], feats.loc[idx, "race_key"]),
-        "baseline_grid_only": evaluate(np.vstack(base_p), y[idx], feats.loc[idx, "race_key"]),
-        "per_season": per_season,
-    }
+        base_p.append(_grid_baseline(X, y, train, test))
 
+        rows = feats.loc[test]
+        meta = info.loc[list(zip(rows["season"], rows["round"], rows["driver_ref"]))]
+        races.append(
+            {
+                "season": int(rows["season"].iloc[0]),
+                "round": int(rows["round"].iloc[0]),
+                "name": meta["event_name"].iloc[0],
+                "circuit_ref": rows["circuit_ref"].iloc[0],
+                "field": [
+                    {
+                        "driver_ref": ref,
+                        "code": None if pd.isna(m.driver_code) else m.driver_code,
+                        "driver_name": f"{m.first_name} {m.last_name}",
+                        "team_ref": m.team_ref,
+                        "team_name": m.team_name,
+                        "grid": int(m.grid_position),
+                        "finish": None if pd.isna(m.finish_position) else int(m.finish_position),
+                        "status": m.position_text,  # digits when classified, "R"/"D"/"W"... otherwise
+                        "p_win": round(float(pw), 5),
+                        "p_podium": round(float(pw + pp), 5),
+                    }
+                    for ref, m, pw, pp in zip(rows["driver_ref"], meta.itertuples(), p[:, 0], p[:, 1])
+                ],
+            }
+        )
+        log.info("walk-forward %s R%02d %s", races[-1]["season"], races[-1]["round"], races[-1]["name"])
+
+    # feats is sorted by race_key, so the stacked predictions line up with these rows.
+    done = feats["race_key"] >= keys[0]
+    P, B, yt, rk = np.vstack(model_p), np.vstack(base_p), y[done], feats.loc[done, "race_key"]
+    season = feats.loc[done, "season"].to_numpy()
+    metrics = {
+        "model": evaluate(P, yt, rk),
+        "baseline_grid_only": evaluate(B, yt, rk),
+        "per_season": {int(s): evaluate(P[season == s], yt[season == s], rk[season == s]) for s in np.unique(season)},
+    }
+    return metrics, races
 
 def prepare(entries: pd.DataFrame):
     feats = build_features(entries)
@@ -137,7 +175,7 @@ def train(entries_path: Path = ENTRIES_PATH, model_path: Path = MODEL_PATH, metr
     entries = pd.read_parquet(entries_path)
     feats, X, y, categories = prepare(entries)
 
-    bt = backtest(feats, X, y)
+    bt, review = walk_forward(feats, X, y, entries)
     log.info("backtest %s", bt["model"])
 
     final, n_trees = fit_model(X, y, feats["race_key"], np.random.default_rng(SEED))
@@ -155,6 +193,7 @@ def train(entries_path: Path = ENTRIES_PATH, model_path: Path = MODEL_PATH, metr
         "data_to": f"{int(last['season'])}-R{int(last['round'])}",
         "features": list(X.columns),
         "backtest": bt,
+        "review": review,
         "feature_importance": {k: round(float(v), 4) for k, v in importance.items()},
     }
 

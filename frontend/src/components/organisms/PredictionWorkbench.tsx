@@ -5,26 +5,29 @@ import { Flag, LoaderCircle } from "lucide-react";
 import { predictRace } from "@/app/[lang]/actions";
 import { Button } from "@/components/atoms/Button";
 import { PitBoard } from "@/components/organisms/PitBoard";
-import { RaceSetup, type SetupState } from "@/components/organisms/RaceSetup";
+import { RaceSetup, raceKey } from "@/components/organisms/RaceSetup";
 import { ResultsTable } from "@/components/organisms/ResultsTable";
+import { ReviewPanel } from "@/components/organisms/ReviewPanel";
 import { StartingGrid } from "@/components/organisms/StartingGrid";
 import { TrustPanel } from "@/components/organisms/TrustPanel";
 import type { Dictionary, Locale } from "@/dictionaries";
 import { lastRaceOrder } from "@/lib/grid";
 import type {
-  Circuit,
   Driver,
   EntryPrediction,
   Health,
   PredictRequest,
+  Race,
+  Review,
 } from "@/lib/api";
 
 type Props = {
   lang: Locale;
   dict: Dictionary;
-  circuits: Circuit[];
   drivers: Driver[];
   health: Health;
+  races: Race[];
+  review: Review;
 };
 
 type Run = {
@@ -34,27 +37,18 @@ type Run = {
   predictions: EntryPrediction[];
 };
 
-// shortcut: fixed default (the 2026 US GP is the next race after the trained data); upgrade when the API exposes the calendar.
-const DEFAULT_CIRCUIT = "americas";
-
-const toNumber = (v: string) => (v.trim() === "" ? null : Number(v));
-
 export function PredictionWorkbench({
   lang,
   dict,
-  circuits,
   drivers,
   health,
+  races,
+  review,
 }: Props) {
-  const [setup, setSetup] = useState<SetupState>({
-    circuit: circuits.some((c) => c.circuit_ref === DEFAULT_CIRCUIT)
-      ? DEFAULT_CIRCUIT
-      : circuits[0]?.circuit_ref,
-    wet: false,
-    airTemp: "24",
-    humidity: "55",
-    wind: "3",
-  });
+  // The API lists races in calendar order, so the first one is the next GP.
+  const [selected, setSelected] = useState(() =>
+    races[0] ? raceKey(races[0]) : "",
+  );
   const [order, setOrder] = useState(() => lastRaceOrder(drivers));
   const [run, setRun] = useState<Run | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,30 +56,37 @@ export function PredictionWorkbench({
   const boardRef = useRef<HTMLDivElement>(null);
 
   const teams = new Map(drivers.map((d) => [d.driver_ref, d.team_ref]));
+  const race = races.find((r) => raceKey(r) === selected);
+  const w = race?.weather;
 
-  const request: PredictRequest = {
-    circuit_ref: setup.circuit,
-    weather: {
-      air_temp_c: toNumber(setup.airTemp),
-      humidity_pct: toNumber(setup.humidity),
-      wind_speed_ms: toNumber(setup.wind),
-      rainfall: setup.wet,
-    },
-    entries: order.map((d, i) => ({
-      driver_ref: d.driver_ref,
-      grid_position: i + 1,
-    })),
-    normalize: true,
-  };
+  const request: PredictRequest | null = race
+    ? {
+        circuit_ref: race.circuit_ref,
+        season: race.season,
+        round: race.round,
+        // No forecast yet: unknown weather (the model treats it as missing), dry track.
+        weather: {
+          air_temp_c: w?.air_temp_c ?? null,
+          humidity_pct: w?.humidity_pct ?? null,
+          wind_speed_ms: w?.wind_speed_ms ?? null,
+          rainfall: w?.rainfall ?? false,
+        },
+        entries: order.map((d, i) => ({
+          driver_ref: d.driver_ref,
+          grid_position: i + 1,
+        })),
+        normalize: true,
+      }
+    : null;
   const key = JSON.stringify(request);
 
   // A function `action` (not onSubmit) keeps a click before hydration from doing a native GET submit.
   const submit = () => {
-    const circuit = circuits.find((c) => c.circuit_ref === setup.circuit);
+    if (!race || !request) return;
     const heading = [
-      circuit?.name,
-      setup.wet ? dict.setup.wet : dict.setup.dry,
-      setup.airTemp && `${setup.airTemp} °C`,
+      race.name,
+      w && (w.rainfall ? dict.setup.wet : dict.setup.dry),
+      w && `${Math.round(w.air_temp_c)} °C`,
     ].filter((part): part is string => Boolean(part));
     startTransition(async () => {
       const res = await predictRace(request);
@@ -122,9 +123,10 @@ export function PredictionWorkbench({
         </h2>
         <RaceSetup
           dict={dict.setup}
-          circuits={circuits}
-          value={setup}
-          onChange={setSetup}
+          lang={lang}
+          races={races}
+          value={selected}
+          onChange={setSelected}
         />
         <StartingGrid
           dict={dict.grid}
@@ -133,7 +135,7 @@ export function PredictionWorkbench({
           onReset={() => setOrder(lastRaceOrder(drivers))}
         />
         <div className="sticky bottom-3 z-10 -mx-1 mt-1">
-          <Button type="submit" disabled={pending} className="w-full">
+          <Button type="submit" disabled={pending || !race} className="w-full">
             {pending ? (
               <LoaderCircle
                 aria-hidden
@@ -179,6 +181,7 @@ export function PredictionWorkbench({
             runId={run.id}
           />
         )}
+        <ReviewPanel dict={dict.review} lang={lang} review={review} />
         <TrustPanel dict={dict.trust} lang={lang} health={health} />
       </div>
     </div>

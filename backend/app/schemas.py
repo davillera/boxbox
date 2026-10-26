@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
@@ -88,6 +89,59 @@ class BacktestMetrics(BaseModel):
 class Backtest(BaseModel):
     model: BacktestMetrics
     baseline_grid_only: BacktestMetrics
+
+
+class RaceWeather(BaseModel):
+    air_temp_c: float
+    humidity_pct: float
+    wind_speed_ms: float
+    precipitation_mm: float
+    rainfall: bool
+
+
+class RaceOut(BaseModel):
+    season: int
+    round: int
+    name: str
+    circuit_ref: str
+    circuit_name: str
+    country: str | None
+    start_utc: datetime
+    weather: RaceWeather | None = Field(description="Open-Meteo forecast for the first two hours; null until in range")
+    forecast_from: date = Field(description="First day the forecast covers the race start")
+
+
+class ReviewEntry(BaseModel):
+    driver_ref: str
+    code: str | None
+    grid: int
+    win_probability: float
+
+
+class ReviewRace(BaseModel):
+    season: int
+    round: int
+    name: str
+    circuit_ref: str
+    winner: ReviewEntry
+    pick: ReviewEntry = Field(description="The model's favourite, trained only on earlier races")
+    winner_rank: int = Field(description="Where the model ranked the actual winner (1 = favourite)")
+    podium_hits: int = Field(description="How many of the model's top 3 finished on the podium")
+    pole_won: bool
+
+
+class ReviewOut(BaseModel):
+    races: list[ReviewRace]  # chronological, the latest season(s) of the backtest
+
+
+class FieldEntry(EntryPrediction):
+    team_ref: str
+    finish: int | None
+    status: str = Field(description="Finishing position as text; letters (R, D, W...) when not classified")
+
+
+class RaceComparison(ReviewRace):
+    field: list[FieldEntry]  # sorted by predicted win probability
 
 
 class HealthOut(BaseModel):

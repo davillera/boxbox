@@ -1,27 +1,33 @@
 {
   "meta": {
     "title": "BoxBox · ¿Quién gana el domingo?",
-    "description": "Predicción de victoria y podio para la próxima carrera de F1 a partir de la parrilla, el circuito y el clima. Modelo XGBoost entrenado con resultados reales desde 2022."
+    "description": "Predicción de victoria y podio para la próxima carrera de F1 a partir de la parrilla, el circuito y el pronóstico del día de carrera. Modelo XGBoost entrenado con resultados reales desde 2022 y reentrenado después de cada Gran Premio."
   },
   "header": {
     "tagline": "Predictor de carreras de F1",
     "language": "Idioma",
     "theme": "Cambiar entre modo claro y oscuro",
-    "source": "Código en GitHub"
+    "source": "Código en GitHub",
+    "predict": "Predecir",
+    "history": "Historial",
+    "nav": "Secciones"
   },
   "intro": {
     "title": "¿Quién gana el domingo?",
-    "lede": "Elige el circuito y el clima, ordena la parrilla y el modelo calcula la probabilidad de victoria y de podio de cada piloto en la próxima carrera."
+    "lede": "Elige un Gran Premio próximo y ordena la parrilla. El clima sale del pronóstico para la hora de la salida y el modelo calcula la probabilidad de victoria y de podio de cada piloto."
   },
   "setup": {
     "title": "La carrera",
-    "circuit": "Circuito",
+    "race": "Gran Premio",
     "conditions": "Pista",
     "dry": "Seca",
     "wet": "Lluvia",
     "airTemp": "Temperatura",
     "humidity": "Humedad",
-    "wind": "Viento"
+    "wind": "Viento",
+    "forecast": "Pronóstico de Open-Meteo para las dos primeras horas de carrera · {start}",
+    "noForecast": "Aún no hay pronóstico: llega el {date}. Hasta entonces el modelo corre sin datos de clima y asume pista seca.",
+    "noRaces": "No quedan carreras en el calendario. La parrilla se abre de nuevo cuando salga el de la próxima temporada."
   },
   "grid": {
     "title": "Parrilla de salida",
@@ -53,7 +59,25 @@
     "driver": "Piloto",
     "grid": "Sale",
     "win": "Victoria",
-    "podium": "Podio"
+    "podium": "Podio",
+    "finish": "Llegó"
+  },
+  "review": {
+    "title": "Carrera a carrera",
+    "intro": "Antes de cada GP de {season} el modelo solo conocía las carreras anteriores. Después aprende el resultado y se reentrena.",
+    "last": "Último Gran Premio",
+    "won": "Ganó {driver}, saliendo P{grid}: le dábamos un {p}.",
+    "pick": "Nuestro favorito: {driver}, con un {p}.",
+    "hit": "Acierto",
+    "miss": "Fallo",
+    "tally": "{season}: el favorito del modelo ganó {hits} de {races} carreras; el de la pole, {pole}.",
+    "round": "R",
+    "gp": "Gran Premio",
+    "winner": "Ganador",
+    "favourite": "Favorito",
+    "podium": "Top 3 en el podio",
+    "all": "Ver las {races} carreras del backtest",
+    "label": "{season} · R{round}"
   },
   "trust": {
     "title": "¿Cuánto fiarse?",
@@ -75,5 +99,21 @@
     "retry": "Reintentar",
     "predict": "La predicción falló.",
     "network": "No se pudo contactar con la API."
+  },
+  "history": {
+    "title": "¿Qué tan bien predice?",
+    "lede": "Antes de cada Gran Premio de las tres últimas temporadas el modelo se entrenó solo con las carreras anteriores y predijo la parrilla completa. Aquí está cada predicción frente a lo que pasó de verdad.",
+    "compare": "Predicción frente a resultado",
+    "caption": "Orden previsto por probabilidad de victoria (normalizada sobre la parrilla), con la posición final real a la derecha.",
+    "seasons": "Por temporada",
+    "season": "Temporada",
+    "races": "Carreras",
+    "favourite": "Ganó el favorito",
+    "pole": "Ganó la pole",
+    "podium": "Top 3 en el podio",
+    "winnerRank": "Puesto medio del ganador",
+    "winnerRankHint": "En qué puesto de nuestra lista estaba, de media, el piloto que ganó (1 = era el favorito).",
+    "all": "Todas las carreras",
+    "allHint": "Toca una carrera para ver su predicción completa."
   }
 }

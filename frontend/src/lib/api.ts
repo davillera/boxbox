@@ -1,10 +1,56 @@
 // Types mirror backend/app/schemas.py.
 
-export type Circuit = {
-  circuit_ref: string;
-  name: string;
-  country: string | null;
+export type RaceWeather = {
+  air_temp_c: number;
+  humidity_pct: number;
+  wind_speed_ms: number;
+  precipitation_mm: number;
+  rainfall: boolean;
 };
+
+export type Race = {
+  season: number;
+  round: number;
+  name: string;
+  circuit_ref: string;
+  circuit_name: string;
+  country: string | null;
+  start_utc: string;
+  /** Open-Meteo forecast for the race start; null until it is in range. */
+  weather: RaceWeather | null;
+  forecast_from: string;
+};
+
+type ReviewEntry = {
+  driver_ref: string;
+  code: string | null;
+  grid: number;
+  win_probability: number;
+};
+
+export type ReviewRace = {
+  season: number;
+  round: number;
+  name: string;
+  circuit_ref: string;
+  winner: ReviewEntry;
+  pick: ReviewEntry;
+  /** Where the model ranked the actual winner (1 = favourite). */
+  winner_rank: number;
+  podium_hits: number;
+  pole_won: boolean;
+};
+
+export type Review = { races: ReviewRace[] };
+
+export type FieldEntry = EntryPrediction & {
+  team_ref: string;
+  finish: number | null;
+  /** Digits when classified; R, D, W... otherwise. */
+  status: string;
+};
+
+export type RaceComparison = ReviewRace & { field: FieldEntry[] };
 
 export type Driver = {
   driver_ref: string;
@@ -25,6 +71,8 @@ export type Weather = {
 
 export type PredictRequest = {
   circuit_ref: string;
+  season: number;
+  round: number;
   weather: Weather;
   entries: { driver_ref: string; grid_position: number }[];
   normalize: boolean;
@@ -79,10 +127,18 @@ async function get<T>(path: string): Promise<T> {
 }
 
 export async function getCatalog() {
-  const [health, circuits, drivers] = await Promise.all([
+  const [health, drivers, races, review] = await Promise.all([
     get<Health>("/health"),
-    get<Circuit[]>("/circuits"),
     get<Driver[]>("/drivers"),
+    get<Race[]>("/races/upcoming"),
+    get<Review>("/review"),
   ]);
-  return { health, circuits, drivers };
+  return { health, drivers, races, review };
 }
+
+export const getReview = () => get<Review>("/review");
+
+export const getHealth = () => get<Health>("/health");
+
+export const getRaceComparison = (season: number, round: number) =>
+  get<RaceComparison>(`/review/${season}/${round}`);

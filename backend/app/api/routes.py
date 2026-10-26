@@ -1,7 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.api.deps import EngineDep, ServiceDep
-from app.schemas import CircuitOut, DriverOut, HealthOut, PredictRequest, PredictResponse
+from app.schemas import CircuitOut, DriverOut, HealthOut, PredictRequest, PredictResponse, RaceComparison, RaceOut, ReviewOut
+from app.services.calendar import upcoming_races
 from app.services.prediction import PredictionInputError, record_predictions
 
 router = APIRouter()
@@ -21,6 +22,30 @@ def list_circuits(service: ServiceDep) -> list[CircuitOut]:
 def list_drivers(service: ServiceDep) -> list[DriverOut]:
     """Current grid (entrants of the most recent race in the training data)."""
     return service.drivers()
+
+
+@router.get("/races/upcoming", response_model=list[RaceOut], tags=["catalog"])
+def list_upcoming_races(service: ServiceDep) -> list[RaceOut]:
+    """Races after the last trained one that have not started, with the race-start forecast once in range."""
+    try:
+        return upcoming_races(service.last_race)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="race calendar unavailable") from exc
+
+
+@router.get("/review", response_model=ReviewOut, tags=["meta"])
+def review(service: ServiceDep) -> ReviewOut:
+    """This season race by race: what the model, trained only on earlier races, predicted vs what happened."""
+    return service.review
+
+
+@router.get("/review/{season}/{round}", response_model=RaceComparison, tags=["meta"])
+def race_comparison(season: int, round: int, service: ServiceDep) -> RaceComparison:
+    """One backtest race: the whole predicted field (trained only on earlier races) next to how it finished."""
+    race = service.comparisons.get((season, round))
+    if race is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="race not in the backtest")
+    return race
 
 
 @router.post("/predict", response_model=PredictResponse, tags=["predict"])

@@ -1,27 +1,33 @@
 {
   "meta": {
     "title": "BoxBox · Who wins on Sunday?",
-    "description": "Win and podium chances for the next F1 race from the starting grid, the circuit and the weather. An XGBoost model trained on real results since 2022."
+    "description": "Win and podium chances for the next F1 race from the starting grid, the circuit and the race-day forecast. An XGBoost model trained on real results since 2022 and refit after every Grand Prix."
   },
   "header": {
     "tagline": "F1 race predictor",
     "language": "Language",
     "theme": "Switch between light and dark mode",
-    "source": "Source on GitHub"
+    "source": "Source on GitHub",
+    "predict": "Predict",
+    "history": "Track record",
+    "nav": "Sections"
   },
   "intro": {
     "title": "Who wins on Sunday?",
-    "lede": "Pick the circuit and the weather, set the grid, and the model works out every driver's chance of winning and of reaching the podium in the next race."
+    "lede": "Pick an upcoming Grand Prix and set the grid. The weather comes from the forecast for race start, and the model works out every driver's chance of winning and of reaching the podium."
   },
   "setup": {
     "title": "The race",
-    "circuit": "Circuit",
+    "race": "Grand Prix",
     "conditions": "Track",
     "dry": "Dry",
     "wet": "Wet",
     "airTemp": "Temperature",
     "humidity": "Humidity",
-    "wind": "Wind"
+    "wind": "Wind",
+    "forecast": "Open-Meteo forecast for the first two hours from lights out · {start}",
+    "noForecast": "No forecast yet: it arrives on {date}. Until then the model runs without weather and assumes a dry track.",
+    "noRaces": "No races left on the calendar. The grid opens again when the next season's schedule is out."
   },
   "grid": {
     "title": "Starting grid",
@@ -53,7 +59,25 @@
     "driver": "Driver",
     "grid": "Grid",
     "win": "Win",
-    "podium": "Podium"
+    "podium": "Podium",
+    "finish": "Finished"
+  },
+  "review": {
+    "title": "Race by race",
+    "intro": "Before each {season} Grand Prix the model only knew the earlier races. Afterwards it learns the result and is refit.",
+    "last": "Last Grand Prix",
+    "won": "{driver} won, from P{grid}: we gave them {p}.",
+    "pick": "Our favourite: {driver} at {p}.",
+    "hit": "Called it",
+    "miss": "Missed",
+    "tally": "{season}: the model's favourite won {hits} of {races} races; the pole sitter, {pole}.",
+    "round": "Rd",
+    "gp": "Grand Prix",
+    "winner": "Winner",
+    "favourite": "Favourite",
+    "podium": "Top 3 on podium",
+    "all": "See all {races} backtest races",
+    "label": "{season} · Rd {round}"
   },
   "trust": {
     "title": "How far to trust it",
@@ -75,5 +99,21 @@
     "retry": "Retry",
     "predict": "The prediction failed.",
     "network": "Could not reach the API."
+  },
+  "history": {
+    "title": "How good is it?",
+    "lede": "Before every Grand Prix of the last three seasons the model was trained only on the earlier races and predicted the whole grid. Here is each prediction next to what actually happened.",
+    "compare": "Prediction vs result",
+    "caption": "Predicted order by win chance (normalised over the grid), with the real finishing position on the right.",
+    "seasons": "By season",
+    "season": "Season",
+    "races": "Races",
+    "favourite": "Favourite won",
+    "pole": "Pole won",
+    "podium": "Top 3 on podium",
+    "winnerRank": "Winner's average rank",
+    "winnerRankHint": "Where the eventual winner sat in our list on average (1 = our favourite).",
+    "all": "All races",
+    "allHint": "Tap a race to see its full prediction."
   }
 }

@@ -15,8 +15,11 @@ venv/
 # ML artifacts & FastF1 cache
 boxbox-ml/cache/
 boxbox-ml/data/
-boxbox-ml/artifacts/
+boxbox-ml/artifacts/*
 *.joblib
+# The deployed model ships with the repo: Render builds the API image from it (~300 KB).
+!boxbox-ml/artifacts/model.joblib
+!boxbox-ml/artifacts/metrics.json
 *.pkl
 
 # Node / Next.js

@@ -1,7 +1,10 @@
+from datetime import UTC, datetime, timedelta
+
 import numpy as np
 from sqlmodel import Session, select
 
 from app.models import PredictionHistory
+from app.services import calendar
 from app.services.prediction import normalize_field
 
 USGP = {
@@ -12,7 +15,7 @@ USGP = {
         {"driver_ref": "max_verstappen", "grid_position": 2, "quali_gap_pct": 0.1},
     ],
     "season": 2026,
-    "round": 18,
+    "round": 19,
 }
 
 
@@ -32,6 +35,58 @@ def test_catalog(client):
     assert all(0 <= d["last_grid"] <= 30 for d in drivers)
 
 
+def test_review_compares_each_race_with_its_result(client):
+    races = client.get("/review").json()["races"]
+    keys = [(r["season"], r["round"]) for r in races]
+    assert keys and keys == sorted(keys) and "field" not in races[0]
+    for r in races:
+        assert 0 <= r["winner"]["win_probability"] <= r["pick"]["win_probability"] <= 1
+        assert 0 <= r["podium_hits"] <= 3 and r["winner_rank"] >= 1
+
+    last = races[-1]
+    race = client.get(f"/review/{last['season']}/{last['round']}").json()
+    probs = [e["win_probability"] for e in race["field"]]
+    assert probs == sorted(probs, reverse=True) and abs(sum(probs) - 1) < 1e-2
+    assert race["field"][race["winner_rank"] - 1]["finish"] == 1
+    assert client.get("/review/1999/1").status_code == 404
+
+
+def test_upcoming_races_skip_started_and_get_the_forecast_in_range(client, monkeypatch):
+    now = datetime.now(UTC)
+
+    def race(rnd, start):
+        return {
+            "season": "2026",
+            "round": str(rnd),
+            "raceName": f"GP {rnd}",
+            "date": start.date().isoformat(),
+            "time": start.strftime("%H:00:00Z"),
+            "Circuit": {"circuitId": "americas", "circuitName": "COTA", "Location": {"lat": "30.1", "long": "-97.6", "country": "USA"}},
+        }
+
+    start = now + timedelta(days=3)
+    hours = [start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=h) for h in range(2)]
+    hourly = {
+        "time": [h.strftime("%Y-%m-%dT%H:%M") for h in hours],
+        "temperature_2m": [20.0, 22.0],
+        "relative_humidity_2m": [50, 60],
+        "precipitation": [1.0, 0.5],
+        "surface_pressure": [1010, 1010],
+        "wind_speed_10m": [2.0, 4.0],
+    }
+    payloads = {
+        "jolpi": {"MRData": {"RaceTable": {"Races": [race(98, now - timedelta(hours=1)), race(99, start), race(100, now + timedelta(days=40))]}}},
+        "open-meteo": {"hourly": hourly},
+    }
+    monkeypatch.setattr(calendar, "_cache", None)
+    monkeypatch.setattr(calendar, "_get_json", lambda url: next(v for k, v in payloads.items() if k in url))
+
+    races = client.get("/races/upcoming").json()
+    assert [r["round"] for r in races] == [99, 100]  # R98 already started
+    assert races[0]["weather"] == {"air_temp_c": 21.0, "humidity_pct": 55.0, "wind_speed_ms": 3.0, "precipitation_mm": 1.5, "rainfall": True}
+    assert races[1]["weather"] is None  # beyond the forecast horizon
+
+
 def test_predict_returns_probabilities_and_logs_history(client, engine):
     resp = client.post("/predict", json=USGP)
     assert resp.status_code == 200, resp.text
@@ -47,7 +102,7 @@ def test_predict_returns_probabilities_and_logs_history(client, engine):
         rows = s.exec(select(PredictionHistory)).all()
     assert len(rows) == 2
     assert {r.model_version for r in rows} == {body["model"]["version"]}
-    assert all(r.season == 2026 and r.round == 18 for r in rows)
+    assert all(r.season == 2026 and r.round == 19 for r in rows)
 
 
 def test_better_grid_is_not_worse(client):
