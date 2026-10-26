@@ -634,7 +634,9 @@
     "avg": "avg",
     "best": "best",
     "notFound": "That driver is not in the data.",
-    "unavailable": "We could not load the profile. Try again in a few minutes."
+    "unavailable": "We could not load the profile. Try again in a few minutes.",
+    "photoBy": "Photo",
+    "photosNote": "Driver photos are from formula1.com and belong to Formula One World Championship Limited."
   },
   "quality": {
     "calibrationTitle": "What is a 30 % worth?",

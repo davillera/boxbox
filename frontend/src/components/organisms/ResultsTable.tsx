@@ -1,5 +1,5 @@
 import { ProbabilityBar } from "@/components/atoms/ProbabilityBar";
-import { TeamSwatch } from "@/components/atoms/TeamSwatch";
+import { DriverPhoto } from "@/components/atoms/DriverPhoto";
 import type { Dictionary, Locale } from "@/dictionaries";
 import type { EntryPrediction } from "@/lib/api";
 import { pct, shortTeam } from "@/lib/teams";
@@ -101,7 +101,11 @@ export function ResultsTable({
                     onSelect={onSelect && (() => onSelect(p.driver_ref))}
                     pressed={p.driver_ref === selectedRef}
                   >
-                    <TeamSwatch teamRef={teamOf(p.driver_ref)} />
+                    <DriverPhoto
+                      driverRef={p.driver_ref}
+                      teamRef={teamOf(p.driver_ref)}
+                      className="size-10"
+                    />
                     {/* Phones stack code over team; wider screens add the full name. */}
                     <span className="flex flex-col leading-tight sm:flex-row sm:items-center sm:gap-2.5">
                       <span className="text-base font-sidewall sm:w-11">

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { TeamSwatch } from "@/components/atoms/TeamSwatch";
+import { DriverPhoto } from "@/components/atoms/DriverPhoto";
 import { OfflineBoard } from "@/components/organisms/OfflineBoard";
 import { SiteHeader } from "@/components/organisms/SiteHeader";
 import { DashboardTemplate } from "@/components/templates/DashboardTemplate";
@@ -55,28 +55,37 @@ async function Grid({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const drivers = await getDrivers().catch(() => null);
   if (!drivers) return <OfflineBoard dict={dict.errors} lang={lang} />;
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {drivers.map((d, i) => (
-        <li key={d.driver_ref} data-anim="reveal" data-delay={(i % 8) * 40}>
-          <a
-            href={`/${lang}/drivers/${d.driver_ref}`}
-            className="flex h-full items-center gap-3 border-3 border-ink bg-panel p-3 no-underline shadow-hard-sm transition-[translate,box-shadow] hover:-translate-0.5 hover:shadow-hard"
-          >
-            <TeamSwatch teamRef={d.team_ref} />
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="text-xl font-sidewall">
-                {d.code ?? d.last_name}
+    <>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {drivers.map((d, i) => (
+          <li key={d.driver_ref} data-anim="reveal" data-delay={(i % 8) * 40}>
+            <a
+              href={`/${lang}/drivers/${d.driver_ref}`}
+              className="flex h-full items-center gap-3 border-3 border-ink bg-panel p-3 no-underline shadow-hard-sm transition-[translate,box-shadow] hover:-translate-0.5 hover:shadow-hard"
+            >
+              <DriverPhoto
+                driverRef={d.driver_ref}
+                teamRef={d.team_ref}
+                className="size-16"
+              />
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="text-xl font-sidewall">
+                  {d.code ?? d.last_name}
+                </span>
+                <span className="truncate text-sm font-semibold">
+                  {d.first_name} {d.last_name}
+                </span>
+                <span className="text-xs text-muted">
+                  {shortTeam(d.team_name)}
+                </span>
               </span>
-              <span className="truncate text-sm font-semibold">
-                {d.first_name} {d.last_name}
-              </span>
-              <span className="text-xs text-muted">
-                {shortTeam(d.team_name)}
-              </span>
-            </span>
-          </a>
-        </li>
-      ))}
-    </ul>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="max-w-[62ch] text-xs text-muted">
+        {dict.drivers.photosNote}
+      </p>
+    </>
   );
 }

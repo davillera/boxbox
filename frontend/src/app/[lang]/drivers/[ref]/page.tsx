@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { TeamSwatch } from "@/components/atoms/TeamSwatch";
+import { DriverPhoto } from "@/components/atoms/DriverPhoto";
 import { SiteHeader } from "@/components/organisms/SiteHeader";
 import { DashboardTemplate } from "@/components/templates/DashboardTemplate";
 import {
@@ -95,7 +95,12 @@ async function Sheet({
           data-anim="reveal"
           className="flex flex-wrap items-center gap-4 border-3 border-ink bg-pirelli p-4 text-ink shadow-red"
         >
-          <TeamSwatch teamRef={d.team_ref} />
+          <DriverPhoto
+            driverRef={d.driver_ref}
+            teamRef={d.team_ref}
+            alt={d.name}
+            className="size-24 sm:size-28"
+          />
           <div className="flex min-w-0 flex-col leading-tight">
             <p className="text-3xl font-sidewall">{d.code ?? d.name}</p>
             <p className="text-base font-bold">
@@ -116,6 +121,10 @@ async function Sheet({
             <p className="col-span-3 text-xs font-bold">{stats[0][0]}</p>
           </dl>
         </section>
+        <p className="-mt-3 text-xs text-muted">
+          {t.photoBy}:{" "}
+          <a href="https://www.formula1.com/en/drivers">Formula 1</a>
+        </p>
 
         <section
           data-anim="reveal"

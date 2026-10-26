@@ -634,7 +634,9 @@
     "avg": "media",
     "best": "mejor",
     "notFound": "Ese piloto no está en los datos.",
-    "unavailable": "No pudimos cargar la ficha. Intenta de nuevo en unos minutos."
+    "unavailable": "No pudimos cargar la ficha. Intenta de nuevo en unos minutos.",
+    "photoBy": "Foto",
+    "photosNote": "Las fotos de los pilotos son de formula1.com y pertenecen a Formula One World Championship Limited."
   },
   "quality": {
     "calibrationTitle": "¿Cuánto vale un 30 %?",
