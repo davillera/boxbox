@@ -40,6 +40,7 @@ export function ResultsTable({
   const maxWin = Math.max(...predictions.map((p) => p.win_probability), 0.01);
   return (
     <section
+      data-anim="reveal"
       aria-labelledby="table-title"
       className="border-3 border-ink bg-panel shadow-hard"
     >

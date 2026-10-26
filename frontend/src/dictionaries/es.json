@@ -10,6 +10,7 @@
     "source": "Código en GitHub",
     "predict": "Predecir",
     "history": "Historial",
+    "how": "El modelo",
     "nav": "Secciones"
   },
   "intro": {
@@ -92,6 +93,450 @@
     "honest": "El modelo ordena mejor a todo el pelotón (AUC y log loss), pero al elegir un solo ganador acierta menos que «gana el que sale primero». Úsalo para ver probabilidades, no como una apuesta segura.",
     "footer": "Datos hasta {dataTo} · {model} {version} · Resultados de Jolpica, clima de Open-Meteo. Proyecto independiente, sin afiliación con la Fórmula 1.",
     "source": "Código en GitHub"
+  },
+  "how": {
+    "title": "Cómo funciona el modelo",
+    "lede": "Una guía de punta a punta para quien programa a diario y entiende el machine learning en teoría, pero no lo ha llevado a producción: de dónde salen los datos, cómo se convierten en variables, qué hace XGBoost por dentro, cómo se valida sin hacer trampa y qué significan las métricas.",
+    "toc": "En esta página",
+    "lap": "Vuelta {n} de {total}",
+    "readingTime": "Lectura de unos 15 minutos · Los números de esta página salen del modelo desplegado, no están escritos a mano.",
+    "short": {
+      "title": "La versión corta",
+      "body": [
+        "BoxBox resuelve un problema de **clasificación supervisada**. Cada ejemplo es **un piloto en una carrera**, y el modelo responde: ¿cuál es la probabilidad de que este piloto gane, de que termine 2.º o 3.º, o de que quede fuera del podio?",
+        "Piénsalo como una función pura `f(variables) → [p_victoria, p_podio, p_resto]` cuyos parámetros no escribimos a mano: se **ajustan** mirando {rows} ejemplos reales (de {from} a {to}, {races} carreras). Entrenar es eso: buscar los parámetros que hacen que la función acierte lo mejor posible con los datos que ya conocemos, con la esperanza de que también acierte con los que no conoce.",
+        "Esa última frase es todo el oficio: un modelo que solo acierta en los datos con los que se entrenó no sirve para nada. Casi todo lo que verás abajo (cómo se construyen las variables, cómo se valida, por qué el modelo es pequeño) existe para que el modelo **generalice** a carreras que no ha visto."
+      ]
+    },
+    "pipeline": {
+      "title": "El pipeline, de punta a punta",
+      "body": [
+        "Si vienes del desarrollo de software, un sistema de ML se parece más a un **build** que a una feature: hay una fase offline que produce un artefacto (el modelo entrenado) y una fase online que lo carga y responde peticiones. El código de cada paso vive en el monorepo: `boxbox-ml/` (datos y entrenamiento), `backend/` (API) y `frontend/` (esta web)."
+      ],
+      "steps": [
+        {
+          "name": "Extraer",
+          "where": "boxbox_ml.extract",
+          "detail": "Resultados y clasificación de cada GP desde Jolpica (el sucesor de la API Ergast) y el clima de las dos primeras horas de carrera desde Open-Meteo. Se guarda en Parquet, una fila por piloto y carrera."
+        },
+        {
+          "name": "Variables",
+          "where": "boxbox_ml.features",
+          "detail": "Convierte los datos crudos en las columnas que el modelo entiende: posición de salida, forma reciente, dificultad para adelantar en el circuito… Solo con información anterior a la salida."
+        },
+        {
+          "name": "Entrenar y validar",
+          "where": "boxbox_ml.train",
+          "detail": "Backtest carrera a carrera para medir qué tal predice, y después un ajuste final con todos los datos. Produce `model.joblib` (≈300 KB) y `metrics.json`."
+        },
+        {
+          "name": "Servir",
+          "where": "backend · FastAPI",
+          "detail": "Carga el modelo una sola vez al arrancar. Expone el calendario con el pronóstico, las predicciones y el historial. Corre en Render."
+        },
+        {
+          "name": "Mostrar",
+          "where": "frontend · Next.js",
+          "detail": "Llama a la API desde el servidor (nunca desde el navegador) y pinta la pizarra, la tabla y esta guía. Corre en Vercel."
+        }
+      ]
+    },
+    "data": {
+      "title": "Los datos",
+      "body": [
+        "Una fila del dataset es **un piloto en un Gran Premio**: posición de salida, posición en la clasificación del sábado, distancia a la pole en %, equipo, circuito, clima y cómo terminó. En total hay {rows} filas de {races} carreras.",
+        "Arrancamos en 2022 a propósito. Ese año cambió el reglamento técnico (coches de efecto suelo) y lo que funcionaba antes, como quién era rápido o cuánto se adelantaba, no se traslada bien. En ML, **más datos no siempre es mejor**: datos de un mundo distinto al que vas a predecir enseñan cosas que ya no son ciertas. A esto se le llama *distribution shift*.",
+        "El clima histórico sale del reanálisis ERA5, una reconstrucción hora a hora de la atmósfera, promediado en las dos horas desde la salida. Para las carreras futuras se usa el pronóstico, con el mismo código de agregación. Si llueve más de 1 mm en esa ventana, la carrera cuenta como mojada. Ese umbral se eligió mirando casos reales: Suzuka 2025 fue seca y ERA5 marcaba 0,5 mm.",
+        "Lo que **no** tenemos: telemetría, tiempos por vuelta, estrategia de neumáticos o paradas. FastF1 los ofrece, pero exige una suscripción de pago a F1 TV. Es una limitación real del modelo y la tienes en cuenta al leer sus predicciones."
+      ]
+    },
+    "target": {
+      "title": "Qué predecimos exactamente",
+      "body": [
+        "La **variable objetivo** (*target* o *label*) es lo que el modelo aprende a predecir. Podríamos predecir la posición exacta (1, 2, 3… 22), pero eso es muy ruidoso: la diferencia entre acabar 14.º o 15.º depende de cosas casi aleatorias y no nos interesa. Por eso agrupamos el resultado en tres clases:"
+      ],
+      "classes": [
+        {
+          "name": "Clase 0 · Victoria",
+          "detail": "Terminó 1.º. Aproximadamente 1 de cada 22 filas."
+        },
+        {
+          "name": "Clase 1 · Podio sin ganar",
+          "detail": "Terminó 2.º o 3.º. Unas 2 de cada 22."
+        },
+        {
+          "name": "Clase 2 · Resto",
+          "detail": "Todo lo demás, abandonos incluidos."
+        }
+      ],
+      "after": [
+        "El modelo devuelve tres probabilidades que suman 1 para cada piloto. La probabilidad de podio es simplemente `p(victoria) + p(2.º–3.º)`, así que **nunca puede ser menor que la de ganar**. Si entrenáramos dos modelos separados (uno para ganar y otro para podio), podrían contradecirse.",
+        "Fíjate en el **desbalance**: ganar es rarísimo, apenas un 4–5 % de las filas. Un modelo tonto que dijera «nadie gana nunca» acertaría el 95 % de las veces y no serviría para nada. Por eso no usamos la exactitud (*accuracy*) como métrica principal; lo verás en la sección de métricas."
+      ]
+    },
+    "features": {
+      "title": "Variables: donde se gana o se pierde todo",
+      "body": [
+        "Una **variable** (*feature*) es una columna numérica que el modelo puede usar para decidir. El algoritmo solo ve números: no sabe qué es un piloto ni qué es Mónaco. La ingeniería de variables consiste en traducir el conocimiento del dominio a columnas útiles. En proyectos con pocos datos, como este, suele importar más que elegir el algoritmo.",
+        "Estas son las {count} variables del modelo, agrupadas por la pregunta que responden:"
+      ],
+      "groups": [
+        {
+          "name": "¿Dónde sale?",
+          "items": [
+            {
+              "key": "grid",
+              "label": "Posición de salida",
+              "what": "La variable más fuerte, con diferencia. Los que salen desde el pit lane se colocan detrás del último."
+            },
+            {
+              "key": "quali_position",
+              "label": "Posición en clasificación",
+              "what": "Suele coincidir con la de salida, salvo que haya penalizaciones. Cuando no coinciden, delata a un coche rápido que sale atrás."
+            },
+            {
+              "key": "quali_gap_pct",
+              "label": "Distancia a la pole (%)",
+              "what": "Cuánto más lento fue en clasificación, en porcentaje. Separa una pole por 0,05 % de otra por 0,5 %."
+            }
+          ]
+        },
+        {
+          "name": "¿Qué tiempo hace?",
+          "items": [
+            {
+              "key": "air_temp_c",
+              "label": "Temperatura",
+              "what": "Temperatura del aire en las dos primeras horas de carrera."
+            },
+            {
+              "key": "humidity_pct",
+              "label": "Humedad",
+              "what": "Humedad relativa media."
+            },
+            {
+              "key": "wind_speed_ms",
+              "label": "Viento",
+              "what": "Velocidad media del viento en m/s."
+            },
+            {
+              "key": "rainfall",
+              "label": "Lluvia",
+              "what": "1 si cayó (o se pronostica) al menos 1 mm en esa ventana. La lluvia mezcla el orden de la parrilla."
+            }
+          ]
+        },
+        {
+          "name": "¿Cómo es el circuito?",
+          "items": [
+            {
+              "key": "circuit_ref",
+              "label": "Circuito",
+              "what": "Variable categórica: XGBoost aprende particularidades de cada trazado sin que tengamos que codificarlas a mano."
+            },
+            {
+              "key": "circuit_grid_corr",
+              "label": "Dificultad para adelantar",
+              "what": "La correlación entre el orden de salida y el de llegada en las ediciones anteriores de ese circuito. Cerca de 1 significa que se acaba como se sale (Mónaco); más baja, que hay remontadas."
+            },
+            {
+              "key": "grid_x_overtaking",
+              "label": "Salida × dificultad",
+              "what": "Producto de las dos anteriores. Le da al modelo, ya hecha, la idea de que salir 8.º pesa distinto en Mónaco que en Monza."
+            }
+          ]
+        },
+        {
+          "name": "¿Cómo llega el piloto?",
+          "items": [
+            {
+              "key": "drv_avg_finish_5",
+              "label": "Posición media (últimas 5)",
+              "what": "La forma reciente: dónde terminó de media en sus 5 carreras anteriores."
+            },
+            {
+              "key": "drv_avg_points_5",
+              "label": "Puntos medios (últimas 5)",
+              "what": "Parecida a la anterior, pero premia más los resultados altos."
+            },
+            {
+              "key": "drv_avg_grid_gain_5",
+              "label": "Posiciones ganadas (últimas 5)",
+              "what": "Cuántos puestos suele recuperar en carrera. Algunos pilotos y coches son mejores en domingo que en sábado."
+            },
+            {
+              "key": "drv_dnf_rate_10",
+              "label": "Tasa de abandonos (últimas 10)",
+              "what": "Fiabilidad reciente del piloto y su coche."
+            },
+            {
+              "key": "drv_races",
+              "label": "Experiencia",
+              "what": "Carreras disputadas dentro del dataset."
+            },
+            {
+              "key": "drv_circuit_avg_finish",
+              "label": "Historial en el circuito",
+              "what": "Su posición media en ediciones anteriores de ese mismo GP."
+            },
+            {
+              "key": "drv_wet_avg_finish",
+              "label": "Historial en mojado",
+              "what": "Su posición media en carreras con lluvia."
+            }
+          ]
+        },
+        {
+          "name": "¿Cómo llega el equipo?",
+          "items": [
+            {
+              "key": "team_avg_points_5",
+              "label": "Puntos del equipo (últimas 5)",
+              "what": "Los puntos de sus dos coches sumados. Es la mejor aproximación que tenemos a lo rápido que es el coche ahora mismo."
+            }
+          ]
+        }
+      ],
+      "tried": "También probamos variables que **no** entraron: el ritmo del coche en clasificación, la forma de toda la temporada y las penalizaciones de parrilla. En el backtest no mejoraban las predicciones, así que se quitaron. Añadir variables que no aportan solo le da al modelo más formas de equivocarse.",
+      "leakTitle": "La regla de oro: nada del futuro",
+      "leak": [
+        "El error más común (y más caro) en ML se llama **fuga de datos** (*data leakage*): que el modelo vea durante el entrenamiento información que no tendría en el momento real de predecir. El modelo sale espectacular en las pruebas y luego, en producción, se desploma.",
+        "Un ejemplo concreto: si la «forma reciente» de un piloto incluyera el resultado de la propia carrera que queremos predecir, el modelo aprendería a copiarlo. En las pruebas acertaría casi todo, y con una carrera de verdad no tendría ese dato.",
+        "Por eso toda variable de forma se calcula **desplazando una fila** antes de promediar: para cada carrera solo cuentan las anteriores. En pandas es un `shift(1)` dentro de cada piloto:"
+      ],
+      "code": "# Forma reciente: media de las 5 carreras ANTERIORES de cada piloto\nprevias = df.groupby(\"driver_ref\")[\"finish\"].shift(1)  # quita la carrera actual\nforma = previas.groupby(df[\"driver_ref\"]).rolling(5, min_periods=1).mean()",
+      "skewTitle": "El mismo código para entrenar y para predecir",
+      "skew": [
+        "El segundo error clásico es el *training-serving skew*: la variable se calcula de una forma al entrenar y de otra, ligeramente distinta, en la API. Es el equivalente a validar un formulario con reglas distintas en el cliente y en el servidor.",
+        "Aquí lo evitamos así: cuando pides una predicción, la API añade tu carrera hipotética como una fila más al final del histórico y ejecuta **exactamente la misma función** `build_features` que se usó para entrenar. No hay una segunda implementación que pueda desincronizarse."
+      ]
+    },
+    "model": {
+      "title": "El algoritmo: XGBoost",
+      "body": [
+        "El modelo es un **ensamble de árboles de decisión** entrenado con *gradient boosting* (librería XGBoost). Es el estándar para datos tabulares, es decir, filas y columnas como una hoja de cálculo. En este tipo de problemas suele ganar a las redes neuronales, sobre todo con pocos datos.",
+        "**Un árbol de decisión** es un montón de `if/else` aprendidos de los datos. El algoritmo prueba cortes como «¿grid ≤ 2?» o «¿lluvia = 1?» y se queda con los que mejor separan a los ganadores del resto. Un árbol solo es interpretable pero torpe."
+      ],
+      "treeCaption": "Un árbol pequeño, ilustrativo (los de verdad tienen hasta 4 niveles de preguntas)",
+      "tree": [
+        "si grid ≤ 2:",
+        "    si team_avg_points_5 > 30:  sumar +1,2 a «victoria»",
+        "    si no:                      sumar +0,4 a «victoria»",
+        "si no:",
+        "    si rainfall = 1:            sumar +0,1 a «victoria»",
+        "    si no:                      sumar −0,9 a «victoria»"
+      ],
+      "boosting": [
+        "**Boosting** significa entrenar los árboles **en secuencia**, cada uno pequeño y centrado en corregir los errores que dejaron los anteriores. Se parece a refactorizar por iteraciones: el primer árbol capta lo grueso (salir delante ayuda), el siguiente se fija en los casos que el primero falló (ese que salía 6.º y ganó con lluvia), y así sucesivamente. La predicción final es la **suma** de todos los árboles, convertida en tres probabilidades con una *softmax*.",
+        "El modelo desplegado tiene {trees} árboles. No elegimos ese número a mano: lo decide el *early stopping*, que se explica más abajo."
+      ],
+      "paramsTitle": "Los hiperparámetros, en cristiano",
+      "paramsIntro": "Los **parámetros** los aprende el modelo (los cortes de cada árbol). Los **hiperparámetros** los fijamos nosotros antes de entrenar: son la configuración del algoritmo. Casi todos sirven para lo mismo, que el modelo no memorice:",
+      "params": [
+        {
+          "name": "max_depth",
+          "value": "4",
+          "what": "Cada árbol hace como mucho 4 preguntas seguidas. Árboles poco profundos captan patrones generales, no casos sueltos."
+        },
+        {
+          "name": "learning_rate",
+          "value": "0,03",
+          "what": "Cada árbol nuevo solo corrige un 3 % de lo que podría. Con pasos pequeños hacen falta más árboles, pero el resultado es más estable."
+        },
+        {
+          "name": "min_child_weight",
+          "value": "5",
+          "what": "No se crea una rama para un puñado de ejemplos: evita reglas del tipo «si es Mónaco 2023 y llueve, gana X»."
+        },
+        {
+          "name": "subsample · colsample_bytree",
+          "value": "0,8 · 0,8",
+          "what": "Cada árbol ve un 80 % de las filas y un 80 % de las columnas, elegidas al azar. Ese ruido obliga a no depender de un único dato."
+        },
+        {
+          "name": "reg_lambda",
+          "value": "2",
+          "what": "Penaliza los árboles que dan saltos muy grandes. Es regularización: le pone un precio a la complejidad."
+        },
+        {
+          "name": "n_estimators",
+          "value": "hasta 2000",
+          "what": "El máximo de árboles. El número real lo fija el early stopping."
+        }
+      ],
+      "overfitTitle": "Sobreajuste: el enemigo",
+      "overfit": [
+        "El **sobreajuste** (*overfitting*) ocurre cuando el modelo memoriza el ruido de los datos de entrenamiento en lugar del patrón. Se parece a una suite de tests que solo pasa con los fixtures exactos con los que la escribiste: verde en CI y roja en producción.",
+        "Con unas 2.000 filas el riesgo es alto, así que el modelo es deliberadamente pequeño y conservador."
+      ],
+      "dropoutTitle": "Un truco práctico: esconder datos a propósito",
+      "dropout": "La API acepta predicciones solo con la posición de salida, sin la distancia a la pole. Si el modelo siempre hubiera visto esa distancia al entrenar, no sabría qué hacer cuando falta. Por eso, en el entrenamiento se **borra al azar en el 30 % de las filas**. Es una especie de *chaos testing*: aprende a funcionar también cuando falta ese dato."
+    },
+    "validation": {
+      "title": "Validar sin hacer trampa",
+      "body": [
+        "Para saber si un modelo funciona hay que probarlo con datos que **no** vio al entrenar. La receta de manual es mezclar las filas y separar un 20 % al azar para probar. Aquí sería un error grave: el modelo entrenaría con carreras de 2026 para «predecir» carreras de 2024. Eso es ver el futuro, y el futuro (qué coche es rápido este año) es justo lo que queremos predecir.",
+        "Con datos que dependen del tiempo, la validación tiene que respetar el orden. Usamos un **backtest walk-forward carrera a carrera**, que reproduce exactamente cómo se usaría el modelo en la vida real:"
+      ],
+      "steps": [
+        "Antes de cada GP de las tres últimas temporadas, se entrena un modelo nuevo **solo con las carreras anteriores**.",
+        "Ese modelo predice la parrilla completa del GP.",
+        "Se guarda la predicción y se compara con el resultado real.",
+        "El resultado entra en los datos de entrenamiento y se pasa a la siguiente carrera."
+      ],
+      "after": [
+        "Son {backtestRaces} entrenamientos completos (unos 4 minutos en un portátil). Cada predicción del **Historial** sale de aquí: es lo que el modelo habría dicho de verdad antes de esa carrera.",
+        "**Early stopping**: dentro de cada entrenamiento separamos el 15 % de carreras más recientes y vamos añadiendo árboles mientras el error en esas carreras baje. Cuando lleva 100 árboles sin mejorar, paramos y nos quedamos con el mejor número. Después se reentrena con todo usando ese número. Así es como sale la cifra de {trees} árboles.",
+        "El modelo desplegado se entrena con **todas** las carreras, incluida la última. Por eso, después de cada GP hay que volver a entrenar: así el modelo aprende de lo que acaba de pasar."
+      ],
+      "timelineCaption": "Walk-forward: cada carrera se predice con un modelo que solo conoce el pasado",
+      "train": "entrena",
+      "predict": "predice",
+      "future": "aún no existe"
+    },
+    "metrics": {
+      "title": "Cómo medimos si acierta",
+      "body": [
+        "No hay una métrica única: cada una responde a una pregunta distinta. Estas son las del backtest ({backtestRaces} carreras), comparadas con una **línea base**."
+      ],
+      "baselineTitle": "La línea base: compárate siempre con lo simple",
+      "baseline": "La línea base es una regresión logística que **solo mira la posición de salida**. Viene a decir «el que sale delante tiene más opciones». Es el equivalente a medir tu algoritmo optimizado contra la implementación ingenua: si no le gana, sobra la complejidad. En ML es sorprendentemente común que un modelo sofisticado no supere a la regla obvia.",
+      "items": [
+        {
+          "key": "log_loss",
+          "name": "Log loss",
+          "better": "menor es mejor",
+          "what": "Mide si las **probabilidades** son buenas, no solo si el orden lo es. Castiga muchísimo estar muy seguro y equivocarse. Si dices 95 % y no gana, la penalización es enorme; si dices 30 % y no gana, apenas cuenta. Es la métrica que optimiza el entrenamiento."
+        },
+        {
+          "key": "win_auc",
+          "name": "AUC de victoria",
+          "better": "mayor es mejor (0,5 = azar, 1 = perfecto)",
+          "what": "Si eliges al azar un piloto que ganó y otro que no, ¿con qué frecuencia el modelo le dio más probabilidad al ganador? Mide la calidad del orden en todo el pelotón."
+        },
+        {
+          "key": "winner_pick_accuracy",
+          "name": "El favorito gana",
+          "better": "mayor es mejor",
+          "what": "En qué porcentaje de carreras ganó el piloto al que el modelo daba más opciones. Es la métrica más intuitiva y la más ruidosa: depende de una sola fila por carrera."
+        },
+        {
+          "key": "podium_top3_precision",
+          "name": "Top 3 en el podio",
+          "better": "mayor es mejor",
+          "what": "De los tres pilotos con más probabilidad de podio según el modelo, cuántos acabaron en el podio de media."
+        }
+      ],
+      "reading": [
+        "**Cómo leerlo**: el modelo gana en log loss y AUC. Ordena mejor a todo el pelotón y sus probabilidades están mejor calibradas. Pero al elegir un solo ganador acierta menos que «gana el que sale primero».",
+        "No es una contradicción. En esta era la pole se convierte en victoria muy a menudo, y la regla simple se queda siempre con el mismo candidato. El modelo reparte la probabilidad entre varios candidatos, y cuando su favorito no es el poleman suele quedarse a medias. Para apostar por un único nombre, la regla simple es difícil de batir. Para saber **cuánto** más probable es un piloto que otro, el modelo es mejor. Por eso la web enseña probabilidades y no un ganador."
+      ],
+      "model": "Modelo",
+      "baselineCol": "Solo parrilla"
+    },
+    "normalize": {
+      "title": "De probabilidades sueltas a una pizarra coherente",
+      "body": [
+        "El modelo puntúa a cada piloto **por separado**: para él, cada fila es independiente. Por eso, si sumas la probabilidad de victoria de los 22 pilotos, no te sale exactamente 100 %. Puede salir 93 % o 108 %, y eso no tiene sentido en una carrera con un solo ganador.",
+        "La API lo corrige después de predecir: reescala las probabilidades de victoria para que sumen 100 % y las de podio para que sumen 300 % (hay tres plazas). Lo hace respetando dos reglas: ninguna probabilidad de podio puede pasar del 100 % y ninguna puede ser menor que la de ganar. Si un piloto se pasaría del 100 %, se queda en el tope y el resto se reparte entre los demás (lo que se llama *water-filling*).",
+        "Es un paso pequeño, pero ilustra algo importante: la salida cruda de un modelo casi nunca es lo que enseñas al usuario. Siempre hay una capa de lógica de producto encima."
+      ]
+    },
+    "importance": {
+      "title": "Qué variables pesan más",
+      "body": [
+        "XGBoost lleva la cuenta de cuánto mejoró la predicción cada vez que usó una variable para cortar un árbol. A eso se le llama **ganancia** (*gain*). Repartida en porcentajes, da una idea de en qué se fija el modelo desplegado:"
+      ],
+      "caveat": "Dos advertencias. La importancia **no es causalidad**: que la posición de salida pese tanto no prueba que salir delante «cause» la victoria, porque el coche rápido sale delante **y** gana. Y cuando dos variables dicen casi lo mismo (salida y clasificación), se reparten la importancia de forma bastante arbitraria."
+    },
+    "serving": {
+      "title": "En producción",
+      "body": [
+        "El modelo entrenado es un fichero `model.joblib` de unos 300 KB, versionado en el repositorio. Guarda los árboles, la lista de circuitos conocidos y el histórico de resultados que hace falta para calcular la forma reciente. La API (FastAPI, en Render) lo carga **una vez** al arrancar y desde ahí cada predicción tarda milisegundos.",
+        "El calendario se consulta a Jolpica y el pronóstico de cada carrera, a Open-Meteo. Ambos se guardan una hora en memoria, para no depender de que esos servicios respondan en cada visita. El pronóstico llega solo cuando faltan 14 días o menos para la carrera; antes, el modelo trabaja sin clima y asume pista seca.",
+        "Cada predicción que se pide queda registrada en Postgres (Neon) con la versión del modelo. Eso permitirá más adelante medir si el modelo empeora con el tiempo (*model drift*), que en F1 pasa en cuanto un equipo trae mejoras al coche."
+      ]
+    },
+    "retrain": {
+      "title": "Reentreno automático después de cada GP",
+      "body": [
+        "Un modelo de F1 caduca rápido. Las variables de forma (puntos de las últimas 5 carreras, posición media, abandonos…) solo están al día si el modelo conoce la última carrera, y cada fin de semana trae algo nuevo: un coche que mejora, un piloto que pierde ritmo. Si no se reentrena, el modelo sigue prediciendo con el mundo de hace semanas.",
+        "Por eso el reentreno está automatizado con **GitHub Actions**, el CI del propio repositorio, en `.github/workflows/retrain.yml`. Es exactamente lo que harías a mano, pero ejecutado por una máquina y con controles que impiden desplegar un modelo peor."
+      ],
+      "triggerTitle": "Cuándo se dispara",
+      "trigger": "Se ejecuta **todos los días a las 06:00 UTC** (también se puede lanzar a mano). Jolpica publica los resultados unas horas después de la bandera a cuadros, así que la mañana siguiente a un GP ya están disponibles. Los demás días el trabajo comprueba que no hay nada nuevo y termina en un minuto. Ese diseño es **idempotente**: ejecutarlo dos veces no cambia nada, así que no hace falta saber de antemano cuándo es cada carrera, ni preocuparse por GPs en sábado o cambios de calendario.",
+      "stepsTitle": "Qué hace, paso a paso",
+      "steps": [
+        "**Descarga** los resultados y el clima de la temporada actual. Las temporadas terminadas y las respuestas HTTP se guardan en caché entre ejecuciones, así que solo se vuelve a pedir lo nuevo.",
+        "**Compara** la última carrera con resultados con la última que conoce el modelo desplegado (`data_to` en `metrics.json`). Si son la misma, se detiene aquí.",
+        "**Entrena** igual que en local: el backtest carrera a carrera de las tres últimas temporadas (que ahora incluye el GP recién terminado como una predicción más del Historial) y el ajuste final con todos los datos.",
+        "**Puerta de calidad**: el modelo nuevo tiene que seguir ganando a la línea base «solo parrilla» en log loss y AUC. Si pierde, el trabajo falla a propósito, el modelo desplegado sigue intacto y GitHub avisa por correo.",
+        "**Tests de la API** contra el modelo nuevo: los mismos que se ejecutan en desarrollo, para no publicar un fichero que la API no sepa cargar o que devuelva probabilidades sin sentido.",
+        "**Carga en Neon** los resultados nuevos (pilotos, circuitos y entradas), si el repositorio tiene configurado el secreto con la conexión a la base de datos.",
+        "**Commit y push** de `model.joblib` y `metrics.json`. Ese push es el despliegue: Render reconstruye la API con el modelo nuevo y Vercel la web. En unos minutos la pizarra, el Historial y los números de esta guía reflejan la carrera que acaba de pasar."
+      ],
+      "whyTitle": "Por qué así",
+      "why": [
+        "**El modelo vive en git.** Cada reentreno es un commit con el modelo y sus métricas. Volver a la versión anterior es un `git revert`, y el historial del repositorio es, de paso, el historial de versiones del modelo. En equipos grandes esto lo hace un *model registry*; aquí, con un fichero de 300 KB, git basta.",
+        "**Una puerta de calidad, no fe.** Igual que no mergeas código con los tests en rojo, no se despliega un modelo que no supera a la regla obvia. Es la versión mínima de lo que en MLOps se llama *continuous training* con validación automática.",
+        "**Lo que aún no hace**: no vigila la deriva entre carreras ni avisa si las predicciones empiezan a fallar más de lo normal. Los datos para hacerlo ya se guardan en la tabla de predicciones; es el siguiente paso natural."
+      ]
+    },
+    "limits": {
+      "title": "Limitaciones honestas",
+      "items": [
+        "**Pocos datos.** Unas 2.000 filas y apenas un centenar de ganadores. Cada victoria rara (un piloto que gana desde la 9.ª posición con lluvia) pesa mucho y es difícil distinguir el patrón del ruido.",
+        "**Le falta medio deporte.** Sin telemetría, ritmo de carrera, estrategia, neumáticos ni safety cars, el modelo no puede ver muchas de las cosas que deciden una carrera.",
+        "**El mundo cambia.** El reglamento de 2026 cambió los coches, y la forma de los equipos varía con cada actualización técnica. Pesar más las carreras recientes, o detectar estos cambios automáticamente, es un siguiente paso natural.",
+        "**La parrilla la pones tú.** Antes de la clasificación, el modelo usa el orden de salida de la última carrera como suposición. Su calidad depende de que esa parrilla se parezca a la real.",
+        "**Las probabilidades son probabilidades.** Un 40 % significa que, en situaciones parecidas, ese piloto gana unas 4 de cada 10 veces. Que pierda hoy no prueba que el modelo esté mal, y que gane tampoco prueba que esté bien. Para juzgarlo hay que mirar muchas carreras: para eso está el Historial."
+      ]
+    },
+    "glossary": {
+      "title": "Glosario rápido",
+      "terms": [
+        {
+          "term": "Feature / variable",
+          "def": "Una columna de entrada que el modelo usa para decidir."
+        },
+        {
+          "term": "Target / label",
+          "def": "Lo que se quiere predecir; aquí, victoria, podio o resto."
+        },
+        {
+          "term": "Entrenamiento",
+          "def": "Ajustar los parámetros del modelo para que acierte con datos ya conocidos."
+        },
+        {
+          "term": "Hiperparámetro",
+          "def": "Configuración del algoritmo que se fija antes de entrenar (profundidad de los árboles, ritmo de aprendizaje…)."
+        },
+        {
+          "term": "Overfitting",
+          "def": "Memorizar el ruido de los datos de entrenamiento: va bien en pruebas y mal con datos nuevos."
+        },
+        {
+          "term": "Data leakage",
+          "def": "Que se cuele en el entrenamiento información que no estaría disponible al predecir."
+        },
+        {
+          "term": "Walk-forward",
+          "def": "Validación que respeta el tiempo: predecir cada momento solo con lo anterior."
+        },
+        {
+          "term": "Baseline",
+          "def": "Una solución simple contra la que comparar; si no la superas, el modelo sobra."
+        },
+        {
+          "term": "Calibración",
+          "def": "Que un 30 % del modelo ocurra de verdad alrededor del 30 % de las veces."
+        },
+        {
+          "term": "Early stopping",
+          "def": "Dejar de añadir árboles cuando el error en datos reservados deja de bajar."
+        }
+      ]
+    }
   },
   "errors": {
     "offlineTitle": "Sin señal del muro",

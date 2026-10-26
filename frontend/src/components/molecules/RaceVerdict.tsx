@@ -14,6 +14,8 @@ export function Stamp({
   const Icon = hit ? Check : X;
   return (
     <span
+      data-anim="stamp"
+      data-delay={250}
       className={`inline-flex items-center gap-1 border-2 border-ink px-2 py-0.5 text-xs font-black uppercase italic ${hit ? "bg-pirelli text-ink" : "bg-redline text-chalk"}`}
     >
       <Icon aria-hidden className="size-3.5" strokeWidth={3.5} />

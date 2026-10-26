@@ -107,6 +107,8 @@ async function History({
       <div className="flex min-w-0 flex-col gap-6 lg:col-span-5">
         <SeasonSummary dict={dict.history} lang={lang} races={races} />
         <section
+          data-anim="reveal"
+          data-delay={120}
           aria-labelledby="all-title"
           className="flex flex-col gap-3 border-3 border-ink bg-panel p-4 shadow-hard sm:p-5"
         >

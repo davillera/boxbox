@@ -6,10 +6,19 @@ const COMPOUNDS = [
 ];
 
 /** A tyre seen side-on: black rubber, compound band, position on the hub. */
-export function TyreBadge({ position }: { position: number }) {
+export function TyreBadge({
+  position,
+  delay = 0,
+}: {
+  position: number;
+  /** ms; spins down in step with its slat (lib/motion PRESETS.tyre). */
+  delay?: number;
+}) {
   const band = COMPOUNDS[position - 1] ?? "var(--color-smoke)";
   return (
     <svg
+      data-anim="tyre"
+      data-delay={delay}
       viewBox="0 0 64 64"
       className="size-14 shrink-0 sm:size-18"
       aria-hidden

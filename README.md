@@ -40,7 +40,18 @@ uv run pytest
 
 ### Después de cada Gran Premio
 
-El modelo aprende de cada carrera al reentrenarse con su resultado:
+El modelo aprende de cada carrera al reentrenarse con su resultado. Lo hace solo el workflow
+`.github/workflows/retrain.yml` (GitHub Actions), todos los días a las 06:00 UTC:
+
+1. descarga resultados y clima (temporadas cerradas en caché);
+2. si hay una carrera más nueva que `data_to` de `metrics.json`, reentrena (backtest + ajuste final);
+3. puerta de calidad: el modelo debe ganar a la línea base «solo parrilla» en log loss y AUC;
+4. pasa los tests de la API con el modelo nuevo;
+5. carga los resultados en Neon si existe el secreto `DATABASE_URL` en el repositorio;
+6. hace commit y push de `model.joblib` y `metrics.json`, lo que redespliega Render y Vercel.
+
+Si algún paso falla, el modelo desplegado no cambia y GitHub avisa por correo. Para lanzarlo a mano:
+pestaña *Actions* → *Retrain after a Grand Prix* → *Run workflow*. El equivalente local:
 
 ```bash
 cd boxbox-ml
@@ -49,7 +60,7 @@ uv run python -m boxbox_ml.load_db                   # lo sube a Neon
 uv run python -m boxbox_ml.train                     # reentrena; la revisión carrera a carrera va en metrics.json
 ```
 
-Luego reinicia la API para que cargue el modelo nuevo.
+En local, luego reinicia la API para que cargue el modelo nuevo.
 
 | Método | Ruta        | Descripción                                                       |
 | ------ | ----------- | ----------------------------------------------------------------- |

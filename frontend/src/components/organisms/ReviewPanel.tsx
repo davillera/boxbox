@@ -21,6 +21,7 @@ export function ReviewPanel({
   const races = review.races.filter((r) => r.season === last.season);
   return (
     <section
+      data-anim="reveal"
       aria-labelledby="review-title"
       className="flex flex-col gap-4 border-3 border-ink bg-panel p-4 shadow-hard sm:p-5"
     >

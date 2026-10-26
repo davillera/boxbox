@@ -114,6 +114,15 @@ export type Health = {
   status: string;
   model: ModelInfo;
   backtest: { model: BacktestMetrics; baseline_grid_only: BacktestMetrics };
+  training: {
+    rows: number;
+    races: number;
+    data_from: string;
+    data_to: string;
+    n_trees: number;
+    /** XGBoost gain share per feature. */
+    feature_importance: Record<string, number>;
+  };
 };
 
 export const API_URL = process.env.BOXBOX_API_URL ?? "http://localhost:8000";

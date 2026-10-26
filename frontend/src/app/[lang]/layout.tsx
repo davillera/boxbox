@@ -1,5 +1,6 @@
 import { Archivo } from "next/font/google";
 import { notFound } from "next/navigation";
+import { RaceMotion } from "@/components/motion/RaceMotion";
 import { getDictionary, hasLocale, locales } from "@/dictionaries";
 import "../globals.css";
 
@@ -10,8 +11,8 @@ const archivo = Archivo({
   variable: "--font-archivo",
 });
 
-// Runs before paint: saved choice, else the OS preference. No flash of the wrong theme.
-const THEME_SCRIPT = `try{document.documentElement.dataset.theme=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark")}catch(e){}`;
+// Light is the default (rendered on <html>); before paint, a saved choice replaces it. No flash.
+const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}`;
 
 export function generateStaticParams() {
   return locales.map((lang) => ({ lang }));
@@ -32,13 +33,17 @@ export default async function RootLayout({
   return (
     <html
       lang={lang}
+      data-theme="light"
       className={`${archivo.variable} antialiased`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        {children}
+        <RaceMotion />
+      </body>
     </html>
   );
 }

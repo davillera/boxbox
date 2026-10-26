@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { animate } from "animejs";
 import { GripVertical } from "lucide-react";
+import { motionOK } from "@/lib/motion";
 import { TeamSwatch } from "@/components/atoms/TeamSwatch";
 import type { Driver } from "@/lib/api";
 import { shortTeam } from "@/lib/teams";
@@ -25,6 +27,21 @@ export function GridSlot({
   onDropFrom,
 }: Props) {
   const [over, setOver] = useState(false);
+  const card = useRef<HTMLButtonElement>(null);
+  // The picked car idles on the grid (a sub-degree shimmy) until it is swapped.
+  useEffect(() => {
+    if (!selected || !card.current || !motionOK()) return;
+    const idle = animate(card.current, {
+      rotate: [-0.6, 0.6],
+      duration: 90,
+      loop: true,
+      alternate: true,
+      ease: "linear",
+    });
+    return () => {
+      idle.revert();
+    };
+  }, [selected]);
   return (
     <li
       className="relative pt-5"
@@ -51,6 +68,7 @@ export function GridSlot({
         P{position}
       </span>
       <button
+        ref={card}
         type="button"
         draggable
         aria-pressed={selected}

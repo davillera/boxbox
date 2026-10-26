@@ -32,6 +32,7 @@ export function TrustPanel({
   ] as const;
   return (
     <section
+      data-anim="reveal"
       aria-labelledby="trust-title"
       className="flex flex-col gap-4 border-3 border-ink bg-panel p-4 shadow-hard sm:p-5"
     >

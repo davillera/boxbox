@@ -19,6 +19,7 @@ from app.schemas import (
     RaceComparison,
     ReviewEntry,
     ReviewOut,
+    TrainingInfo,
 )
 
 log = logging.getLogger(__name__)
@@ -98,6 +99,7 @@ class PredictionService:
             name=meta["model_name"], version=meta["model_version"], trained_at=meta["trained_at"], data_to=meta["data_to"]
         )
         self.backtest = Backtest.model_validate(meta["backtest"])
+        self.training = TrainingInfo.model_validate(meta)
         self.comparisons = {(r.season, r.round): r for r in map(compare_race, meta["review"])}
         self.review = ReviewOut(races=list(self.comparisons.values()))
         latest = predictor.history.sort_values(["season", "round"]).groupby("driver_ref").tail(1)

@@ -17,6 +17,7 @@ export function SeasonSummary({
     v.toLocaleString(lang, { maximumFractionDigits: 1 });
   return (
     <section
+      data-anim="reveal"
       aria-labelledby="seasons-title"
       className="flex flex-col gap-3 border-3 border-ink bg-panel p-4 shadow-hard sm:p-5"
     >

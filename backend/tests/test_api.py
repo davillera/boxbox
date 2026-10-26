@@ -1,11 +1,18 @@
+import json
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
 from sqlmodel import Session, select
 
+from app.core.config import get_settings
 from app.models import PredictionHistory
 from app.services import calendar
 from app.services.prediction import normalize_field
+
+# The race right after the deployed model's data, so the suite keeps passing after every retrain.
+_trained_to = json.loads(get_settings().model_path.with_name("metrics.json").read_text())["data_to"]
+NEXT_SEASON, _last_round = map(int, _trained_to.split("-R"))
+NEXT_ROUND = _last_round + 1
 
 USGP = {
     "circuit_ref": "americas",
@@ -24,6 +31,8 @@ def test_health(client):
     assert body["status"] == "ok"
     assert body["model"]["version"]
     assert 0 < body["backtest"]["model"]["winner_pick_accuracy"] <= 1
+    importance = body["training"]["feature_importance"]
+    assert "grid" in importance and abs(sum(importance.values()) - 1) < 0.01
 
 
 def test_catalog(client):
@@ -102,7 +111,7 @@ def test_predict_returns_probabilities_and_logs_history(client, engine):
         rows = s.exec(select(PredictionHistory)).all()
     assert len(rows) == 2
     assert {r.model_version for r in rows} == {body["model"]["version"]}
-    assert all(r.season == 2026 and r.round == 19 for r in rows)
+    assert all(r.season == NEXT_SEASON and r.round == NEXT_ROUND for r in rows)
 
 
 def test_better_grid_is_not_worse(client):

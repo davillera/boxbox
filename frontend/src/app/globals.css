@@ -46,26 +46,7 @@
   --shadow-hard: 6px 6px 0 0 var(--shade);
   --shadow-hard-sm: 3px 3px 0 0 var(--shade);
   --shadow-red: 6px 6px 0 0 var(--color-redline);
-
-  --animate-slat: slat-drop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-bar: bar-grow 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
-
-  @keyframes slat-drop {
-    from {
-      transform: translateY(-115%) rotateX(70deg);
-      opacity: 0;
-    }
-    to {
-      transform: none;
-      opacity: 1;
-    }
-  }
-
-  @keyframes bar-grow {
-    from {
-      transform: scaleX(0);
-    }
-  }
+  /* Motion lives in components/motion (anime.js), not in CSS keyframes. */
 }
 
 /* Sidewall lettering: expanded and slanted. */
@@ -86,6 +67,8 @@
   }
 
   body {
+    /* Blocks posed for their entrance sit slightly off-axis; never let that scroll the page. */
+    overflow-x: clip;
     background: var(--ground);
     color: var(--fg);
     font-family: var(--font-sans);
@@ -169,6 +152,7 @@
   *::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
 }

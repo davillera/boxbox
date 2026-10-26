@@ -1,0 +1,105 @@
+# Retrain the model after every Grand Prix and ship it.
+#
+# Runs every day; it only trains when Jolpica has a race the deployed model has
+# not seen. A new model is committed only if it passes the quality gate and the
+# API tests, and that push redeploys Render (API) and Vercel (web) on its own.
+name: Retrain after a Grand Prix
+
+on:
+  schedule:
+    # 06:00 UTC: Jolpica publishes results a few hours after the chequered flag.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: retrain
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Optional repository secret; without it the database load is skipped.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    defaults:
+      run:
+        working-directory: boxbox-ml
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: astral-sh/setup-uv@v6.1.0
+        with:
+          version: "0.13.5"
+
+      # Finished seasons and HTTP caches survive between runs; only the current season is re-downloaded.
+      - uses: actions/cache@v4.2.3
+        with:
+          path: |
+            boxbox-ml/cache
+            boxbox-ml/data/raw
+          key: f1-data-${{ github.run_id }}
+          restore-keys: f1-data-
+
+      - run: uv sync --locked
+
+      - name: Download results and race weather
+        run: uv run python -m boxbox_ml.extract
+
+      - name: Is there a race the model has not seen?
+        id: check
+        run: |
+          uv run python - <<'EOF'
+          import json, os
+          import pandas as pd
+
+          entries = pd.read_parquet("data/race_entries.parquet").sort_values(["season", "round"])
+          last = entries.iloc[-1]
+          latest = f"{int(last['season'])}-R{int(last['round'])}"
+          trained = json.load(open("artifacts/metrics.json"))["data_to"]
+          print(f"latest results: {latest} · deployed model trained to: {trained}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"new={'true' if latest != trained else 'false'}\nlatest={latest}\n")
+          EOF
+
+      - name: Train (race-by-race backtest + final fit)
+        if: steps.check.outputs.new == 'true'
+        run: uv run python -m boxbox_ml.train
+
+      - name: Quality gate
+        if: steps.check.outputs.new == 'true'
+        run: |
+          uv run python - <<'EOF'
+          import json
+
+          bt = json.load(open("artifacts/metrics.json"))["backtest"]
+          model, base = bt["model"], bt["baseline_grid_only"]
+          print(f"log loss {model['log_loss']} vs grid-only {base['log_loss']}")
+          print(f"win AUC  {model['win_auc']} vs grid-only {base['win_auc']}")
+          # Never ship a model that loses to "the car in front wins" on its own metrics.
+          if model["log_loss"] > base["log_loss"] or model["win_auc"] < base["win_auc"]:
+              raise SystemExit("new model is worse than the grid-only baseline; keeping the deployed one")
+          EOF
+
+      - name: API tests against the new model
+        if: steps.check.outputs.new == 'true'
+        working-directory: backend
+        run: |
+          uv sync --locked
+          uv run pytest -q
+
+      - name: Load results into Neon
+        if: steps.check.outputs.new == 'true' && env.DATABASE_URL != ''
+        run: uv run python -m boxbox_ml.load_db
+
+      - name: Commit the new model
+        if: steps.check.outputs.new == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artifacts/model.joblib artifacts/metrics.json
+          git commit -m "Retrain model with results to ${{ steps.check.outputs.latest }}"
+          git push

@@ -21,10 +21,11 @@ export function BoardSlat({
 }: Props) {
   return (
     <li
-      className="grid [transform-origin:top] animate-slat grid-cols-[auto_1fr_auto] items-center gap-x-4 border-3 border-ink bg-ink py-2 pr-4 pl-2 sm:gap-x-6 sm:pr-5"
-      style={{ animationDelay: `${delay}ms` }}
+      data-anim="slat"
+      data-delay={delay}
+      className="grid [transform-origin:top] grid-cols-[auto_1fr_auto] items-center gap-x-4 border-3 border-ink bg-ink py-2 pr-4 pl-2 sm:gap-x-6 sm:pr-5"
     >
-      <TyreBadge position={position} />
+      <TyreBadge position={position} delay={delay} />
       <span className="flex min-w-0 flex-col">
         <span className="text-4xl leading-none font-sidewall text-chalk sm:text-6xl">
           {code}

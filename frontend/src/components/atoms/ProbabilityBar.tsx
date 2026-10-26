@@ -22,8 +22,10 @@ export function ProbabilityBar({
         aria-hidden
       >
         <div
-          className={`h-full origin-left animate-bar ${tone === "win" ? "bg-redline" : "bg-pirelli"}`}
-          style={{ width: `${width}%`, animationDelay: `${delay}ms` }}
+          data-anim="bar"
+          data-delay={delay}
+          className={`h-full origin-left ${tone === "win" ? "bg-redline" : "bg-pirelli"}`}
+          style={{ width: `${width}%` }}
         />
       </div>
       <span className="w-11 text-right text-sm font-extrabold font-narrow tabular-nums sm:w-14">

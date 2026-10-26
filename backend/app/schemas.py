@@ -144,7 +144,17 @@ class RaceComparison(ReviewRace):
     field: list[FieldEntry]  # sorted by predicted win probability
 
 
+class TrainingInfo(BaseModel):
+    rows: int = Field(description="Driver-race rows the final model was fit on")
+    races: int
+    data_from: str
+    data_to: str
+    n_trees: int
+    feature_importance: dict[str, float] = Field(description="XGBoost gain share per feature, highest first")
+
+
 class HealthOut(BaseModel):
     status: str
     model: ModelInfo
     backtest: Backtest
+    training: TrainingInfo
