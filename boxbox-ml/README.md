@@ -1,41 +1,40 @@
 # boxbox-ml
 
-Extracción de datos, ingeniería de variables y modelo XGBoost de BoxBox.
+Data extraction, feature engineering and the XGBoost model behind BoxBox.
 
 ```bash
-uv sync                                  # runtime + grupos pipeline y dev
+uv sync                                  # runtime + the pipeline and dev groups
 uv run python -m boxbox_ml.extract       # Jolpica + Open-Meteo -> data/race_entries.parquet
 uv run python -m boxbox_ml.train         # -> artifacts/model.joblib + artifacts/metrics.json
-uv run python -m boxbox_ml.load_db       # upsert en Neon (lee DATABASE_URL de backend/.env)
+uv run python -m boxbox_ml.load_db       # upsert into Neon (reads DATABASE_URL from backend/.env)
 uv run pytest
 ```
 
-## Fuentes
+## Sources
 
-| Dato                                        | Fuente                                       |
-| ------------------------------------------- | -------------------------------------------- |
-| Resultados, parrilla, Q1–Q3, vuelta rápida  | Jolpica (sucesor de Ergast) vía `fastf1.ergast`, con la caché y el rate limiter de FastF1 |
-| Clima en la ventana de carrera (2 h)        | Open-Meteo: ERA5 para el histórico, API de pronóstico para carreras de los últimos 7 días |
+| Data                                         | Source                                       |
+| -------------------------------------------- | -------------------------------------------- |
+| Results, grid, Q1–Q3, fastest lap            | Jolpica (the Ergast successor) through `fastf1.ergast`, with FastF1's cache and rate limiter |
+| Weather over the race window (2 h)           | Open-Meteo: ERA5 for history, the forecast API for races in the last 7 days |
 
-El live timing de FastF1 (vueltas, clima de pista y telemetría) exige desde la 3.9 una
-suscripción de F1 TV, por eso no se usa. Caché en `cache/` (FastF1 y Open-Meteo).
+Since 3.9, FastF1's live timing (laps, track weather and telemetry) requires an F1 TV
+subscription, so it isn't used. Caches live in `cache/` (FastF1 and Open-Meteo).
 
-## Modelo
+## Model
 
-- Una fila por piloto y carrera. Clasificador XGBoost multiclase (`gana` / `P2–P3` / `resto`),
-  `tree_method="hist"` sobre CPU. P(podio) = P(gana) + P(P2–P3), así que nunca es menor que P(victoria).
-- Variables (`features.py`), todas conocidas antes de la salida: parrilla, posición y gap de
-  clasificación, clima, circuito (categórica), y forma previa del piloto y del equipo (medias móviles
-  de las carreras **anteriores**: llegada, puntos, abandonos, posiciones ganadas, historial en el
-  circuito y en mojado).
-- En la inferencia, el escenario se añade como "próxima carrera" al histórico y pasa por el mismo
-  `build_features`, así que entrenamiento y predicción calculan las variables igual (lo comprueba un test).
-- Validación walk-forward carrera a carrera sobre las tres últimas temporadas: antes de cada GP se
-  entrena solo con las carreras anteriores y se predice su parrilla completa, junto con un baseline que
-  solo usa la parrilla. Las métricas y la predicción de cada carrera (`review`) van en `artifacts/metrics.json`.
-- El reentreno después de cada GP lo hace `.github/workflows/retrain.yml` (ver el README de la raíz).
+- One row per driver per race. A multiclass XGBoost classifier (`win` / `P2–P3` / `rest`),
+  `tree_method="hist"` on CPU. P(podium) = P(win) + P(P2–P3), so it is never lower than P(win).
+- Features (`features.py`), all known before lights out: grid, qualifying position and gap,
+  weather, circuit (categorical), and prior form of driver and team (rolling means over **earlier**
+  races: finish, points, retirements, places gained, record at the circuit and in the wet).
+- At inference the scenario is appended to the history as the "next race" and goes through the same
+  `build_features`, so training and prediction compute features identically (a test checks this).
+- Race-by-race walk-forward validation over the last three seasons: before each GP the model is trained
+  on earlier races only and predicts the whole field, alongside a baseline that only uses the grid.
+  Metrics and each race's prediction (`review`) are written to `artifacts/metrics.json`.
+- Retraining after every GP is done by `.github/workflows/retrain.yml` (see the root README).
 
-## Uso desde Python (backend)
+## Using it from Python (backend)
 
 ```python
 from boxbox_ml import RacePredictor, Scenario
@@ -45,5 +44,5 @@ predictor = RacePredictor.load("artifacts/model.joblib")
 p.win_probability, p.podium_probability
 ```
 
-El paquete solo arrastra `pandas`, `xgboost-cpu`, `scikit-learn` y `joblib`. FastF1 y las
-dependencias de BD están en el grupo local `pipeline`.
+The package only pulls in `pandas`, `xgboost-cpu`, `scikit-learn` and `joblib`. FastF1 and the
+database dependencies live in the local `pipeline` group.

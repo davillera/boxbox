@@ -1,133 +1,135 @@
 # BoxBox
 
-**¿Quién gana el domingo?** Un predictor de carreras de Fórmula 1 de punta a punta: datos reales desde
-2022, un modelo XGBoost que se valida carrera a carrera y se reentrena solo después de cada Gran Premio,
-una API en FastAPI y un dashboard en Next.js en español e inglés.
+**Who wins on Sunday?** An end-to-end Formula 1 race predictor: real data since 2022, an XGBoost model
+validated race by race and retrained automatically after every Grand Prix, a FastAPI backend and a
+Next.js dashboard in Spanish and English.
 
-**[Probar la web](https://boxbox-azure.vercel.app)** ·
-[Cómo funciona el modelo](https://boxbox-azure.vercel.app/es/how) ·
-[Historial de predicciones](https://boxbox-azure.vercel.app/es/review) ·
+**[Try the site](https://boxbox-azure.vercel.app/en)** ·
+[How the model works](https://boxbox-azure.vercel.app/en/how) ·
+[Prediction track record](https://boxbox-azure.vercel.app/en/review) ·
 [API (OpenAPI)](https://boxbox-api-4nx4.onrender.com/docs)
 
-![Dashboard: Gran Premio con el pronóstico del tiempo, parrilla editable y pizarra con el podio más probable](docs/screenshots/dashboard.png)
+![Dashboard: a Grand Prix with its weather forecast, an editable starting grid and the pit board with the most likely podium](docs/screenshots/dashboard.png)
 
-> Proyecto independiente con fines de portafolio y aprendizaje. Sin afiliación con la Fórmula 1.
-> La API corre en el plan gratuito de Render: si lleva un rato sin visitas, la primera carga tarda cerca de un minuto.
+> An independent portfolio and learning project, not affiliated with Formula 1.
+> The API runs on Render's free plan: after a while without visits, the first load takes about a minute.
 
-## Qué hace
+## What it does
 
-- **Predice el próximo GP.** Eliges una carrera del calendario y ordenas la parrilla (arrastrando o tocando dos
-  pilotos). El modelo da la probabilidad de victoria y de podio de los 22 pilotos.
-- **El clima no se escribe a mano.** Sale del pronóstico de Open-Meteo para las dos primeras horas de carrera,
-  en cuanto la carrera está a 14 días o menos.
-- **Rinde cuentas.** El *Historial* enseña, para cada GP de las tres últimas temporadas, lo que el modelo predijo
-  antes de la carrera (sin conocer el resultado) junto a lo que pasó de verdad.
-- **Se explica.** La pestaña *El modelo* es una guía de unos 15 minutos para ingenieros de software que conocen
-  el machine learning en teoría: variables, XGBoost, validación, métricas y MLOps, con los números del modelo desplegado.
-- **Aprende solo.** Un workflow de GitHub Actions detecta cada carrera nueva, reentrena, valida y despliega.
+- **Predicts the next GP.** Pick a race from the calendar and set the grid (drag a driver, or tap two to
+  swap them). The model gives every one of the 22 drivers a win chance and a podium chance.
+- **Nobody types the weather.** It comes from the Open-Meteo forecast for the first two hours of the race,
+  as soon as the race is 14 days away or less.
+- **Shows its work.** The *Track record* lists every GP of the last three seasons with what the model predicted
+  before the race (without knowing the result) next to what actually happened.
+- **Explains itself.** The *Model* tab is a ~15-minute guide for software engineers who know machine learning
+  in theory: features, XGBoost, validation, metrics and MLOps, quoting the deployed model's own numbers.
+- **Learns on its own.** A GitHub Actions workflow spots each new race, retrains, validates and deploys.
 
-| Historial: predicción frente a resultado | Guía del modelo |
+| Track record: prediction vs result | Model guide |
 | --- | --- |
-| ![Historial con la parrilla prevista y la posición final real](docs/screenshots/historial.png) | ![Guía con índice que marca el capítulo actual y el diagrama walk-forward](docs/screenshots/guia.png) |
+| ![Track record with the predicted field and the real finishing positions](docs/screenshots/historial.png) | ![Guide with an index that highlights the current chapter and the walk-forward diagram](docs/screenshots/guia.png) |
 
-## Cómo funciona
+The screenshots show the Spanish interface; every page is also available in English under `/en`.
+
+## How it works
 
 ```mermaid
 flowchart LR
-    J[Jolpica<br/>resultados y clasificación] --> E
-    O[Open-Meteo<br/>clima ERA5 y pronóstico] --> E
-    E[extract<br/>Parquet por temporada] --> F[features<br/>solo datos previos a la salida]
-    F --> T[train<br/>backtest carrera a carrera<br/>+ ajuste final]
+    J[Jolpica<br/>results and qualifying] --> E
+    O[Open-Meteo<br/>ERA5 weather and forecast] --> E
+    E[extract<br/>Parquet per season] --> F[features<br/>pre-race data only]
+    F --> T[train<br/>race-by-race backtest<br/>+ final fit]
     T --> M[(model.joblib<br/>+ metrics.json)]
     M --> A[FastAPI<br/>Render]
     A --> W[Next.js<br/>Vercel]
-    T -. resultados .-> N[(Neon<br/>Postgres)]
-    A -. registro de predicciones .-> N
-    G[GitHub Actions<br/>cada día 06:00 UTC] -. nueva carrera .-> E
+    T -. results .-> N[(Neon<br/>Postgres)]
+    A -. prediction log .-> N
+    G[GitHub Actions<br/>daily 06:00 UTC] -. new race .-> E
 ```
 
-1. **Datos.** Una fila por piloto y carrera (2022 en adelante, la era de efecto suelo): parrilla, clasificación,
-   distancia a la pole, circuito, clima y resultado. Hoy son 2.234 filas de 110 carreras.
-2. **Variables.** 18 columnas que solo usan información anterior a la salida: posición de salida, forma reciente
-   del piloto y del equipo (con `shift(1)` para no filtrar el futuro), dificultad para adelantar en el circuito,
-   historial en mojado, clima. Entrenamiento e inferencia usan la misma función `build_features`.
-3. **Modelo.** XGBoost multiclase (victoria · P2–P3 · resto), árboles poco profundos y regularizados.
-   P(podio) = P(victoria) + P(P2–P3), así que nunca es menor que la de ganar.
-4. **Validación.** Walk-forward carrera a carrera en las tres últimas temporadas (66 GP): antes de cada carrera se
-   entrena solo con las anteriores. Se compara con una línea base que solo mira la parrilla.
-5. **Servicio.** La API carga el modelo una vez, consulta el calendario y el pronóstico (con caché de 1 h),
-   normaliza las probabilidades de toda la parrilla y registra cada predicción en Postgres.
+1. **Data.** One row per driver per race (2022 onwards, the ground-effect era): grid slot, qualifying,
+   gap to pole, circuit, weather and result. Currently 2,234 rows from 110 races.
+2. **Features.** 18 columns built only from information available before lights out: grid slot, recent form
+   of driver and team (with `shift(1)` so the future never leaks in), how hard the circuit is to pass on,
+   wet-weather record, weather. Training and inference share the same `build_features` function.
+3. **Model.** Multiclass XGBoost (win · P2–P3 · rest) with shallow, regularised trees.
+   P(podium) = P(win) + P(P2–P3), so it can never be lower than the win chance.
+4. **Validation.** Race-by-race walk-forward over the last three seasons (66 GPs): before each race the model
+   is trained only on earlier ones. It is compared with a baseline that only looks at the grid.
+5. **Serving.** The API loads the model once, fetches the calendar and the forecast (cached for an hour),
+   normalises the probabilities across the whole grid and logs every prediction to Postgres.
 
-La explicación completa, pensada para quien no ha hecho ML en la práctica, está en
-[la guía de la web](https://boxbox-azure.vercel.app/es/how).
+The full explanation, written for people who haven't done ML in practice, is in
+[the guide on the site](https://boxbox-azure.vercel.app/en/how).
 
-### Resultados del backtest
+### Backtest results
 
-66 carreras (2024–2026), cada una predicha sin haberla visto:
+66 races (2024–2026), each predicted without having seen it:
 
-| Métrica | Modelo | Solo parrilla |
+| Metric | Model | Grid only |
 | --- | ---: | ---: |
-| Log loss (menos es mejor) | **0,292** | 0,311 |
-| AUC de victoria | **0,959** | 0,942 |
-| El favorito gana | 53 % | **61 %** |
-| Top 3 en el podio | 68 % | **69 %** |
+| Log loss (lower is better) | **0.292** | 0.311 |
+| Win AUC | **0.959** | 0.942 |
+| Favourite wins | 53 % | **61 %** |
+| Top 3 on the podium | 68 % | **69 %** |
 
-El modelo ordena mejor a todo el pelotón y sus probabilidades están mejor calibradas. Pero al nombrar un único
-ganador acierta menos que «gana el que sale primero». Por eso la web muestra probabilidades y no un ganador.
-Las cifras actuales están siempre en [`boxbox-ml/artifacts/metrics.json`](boxbox-ml/artifacts/metrics.json) y en `GET /health`.
+The model orders the whole field better and its probabilities are better calibrated. But when it has to name
+a single winner it is right less often than "the pole sitter wins". That's why the site shows probabilities,
+not a winner. The current figures always live in [`boxbox-ml/artifacts/metrics.json`](boxbox-ml/artifacts/metrics.json) and in `GET /health`.
 
 ## Stack
 
-| Parte | Tecnología |
+| Part | Technology |
 | --- | --- |
-| Datos y modelo (`boxbox-ml/`) | Python 3.13, uv, pandas, XGBoost, scikit-learn, FastF1 (cliente de Jolpica), Open-Meteo |
-| API (`backend/`) | FastAPI, SQLModel, psycopg 3, PostgreSQL en Neon, Docker |
+| Data and model (`boxbox-ml/`) | Python 3.13, uv, pandas, XGBoost, scikit-learn, FastF1 (Jolpica client), Open-Meteo |
+| API (`backend/`) | FastAPI, SQLModel, psycopg 3, PostgreSQL on Neon, Docker |
 | Web (`frontend/`) | Next.js 16 (App Router, Cache Components), React 19, TypeScript, Tailwind CSS 4, anime.js 4, pnpm |
-| Operación | GitHub Actions (reentreno), Render (API), Vercel (web) |
+| Operations | GitHub Actions (retraining), Render (API), Vercel (web) |
 
-## Estructura del repositorio
+## Repository layout
 
 ```text
 boxbox/
-├── boxbox-ml/                 # librería de datos y modelo (paquete Python `boxbox_ml`)
+├── boxbox-ml/                 # data and model library (Python package `boxbox_ml`)
 │   ├── src/boxbox_ml/
-│   │   ├── sources/           # clientes de Jolpica y Open-Meteo
-│   │   ├── extract.py         # descarga → data/race_entries.parquet
-│   │   ├── features.py        # ingeniería de variables (compartida con la API)
-│   │   ├── train.py           # backtest walk-forward + modelo final
-│   │   ├── predictor.py       # carga del modelo y predicción (sin dependencias de datos)
-│   │   └── load_db.py         # upsert de resultados en Neon
-│   └── artifacts/             # model.joblib y metrics.json (versionados)
-├── backend/                   # API FastAPI
-│   ├── app/                   # rutas, esquemas, servicios (predicción, calendario)
-│   ├── scripts/init_db.py     # crea las tablas
-│   └── Dockerfile             # se construye desde la raíz del repo
-├── frontend/                  # dashboard Next.js
+│   │   ├── sources/           # Jolpica and Open-Meteo clients
+│   │   ├── extract.py         # download → data/race_entries.parquet
+│   │   ├── features.py        # feature engineering (shared with the API)
+│   │   ├── train.py           # walk-forward backtest + final model
+│   │   ├── predictor.py       # model loading and prediction (no data dependencies)
+│   │   └── load_db.py         # upserts results into Neon
+│   └── artifacts/             # model.joblib and metrics.json (versioned)
+├── backend/                   # FastAPI app
+│   ├── app/                   # routes, schemas, services (prediction, calendar)
+│   ├── scripts/init_db.py     # creates the tables
+│   └── Dockerfile             # built from the repository root
+├── frontend/                  # Next.js dashboard
 │   └── src/
-│       ├── app/[lang]/        # páginas: predecir, historial (review), guía (how)
+│       ├── app/[lang]/        # pages: predict, track record (review), guide (how)
 │       ├── components/        # Atomic Design: atoms, molecules, organisms, templates + motion
-│       ├── dictionaries/      # textos en es / en
-│       └── lib/               # cliente de la API, lógica de parrilla, presets de animación
+│       ├── dictionaries/      # es / en copy
+│       └── lib/               # API client, grid logic, animation presets
 ├── .github/workflows/retrain.yml
 └── docs/screenshots/
 ```
 
-## Ejecutarlo en local
+## Running it locally
 
-Requisitos: [uv](https://docs.astral.sh/uv/) (instala Python 3.13 solo), Node 24 (los tests usan su soporte nativo de TypeScript) y
-[pnpm](https://pnpm.io/) 11. La base de datos es opcional para probarlo: la API funciona sin ella y solo deja de
-registrar las predicciones.
+Requirements: [uv](https://docs.astral.sh/uv/) (it installs Python 3.13 for you), Node 24 (the tests use its
+native TypeScript support) and [pnpm](https://pnpm.io/) 11. The database is optional for trying it out: the API
+works without one and simply stops logging predictions.
 
-### 1. Modelo
+### 1. Model
 
-El repositorio ya trae un modelo entrenado (`boxbox-ml/artifacts/model.joblib`), así que este paso solo hace
-falta para reentrenar:
+The repository already ships a trained model (`boxbox-ml/artifacts/model.joblib`), so this step is only needed
+to retrain:
 
 ```bash
 cd boxbox-ml
 uv sync
-uv run python -m boxbox_ml.extract   # descarga resultados y clima (la primera vez tarda unos minutos)
-uv run python -m boxbox_ml.train     # backtest de 66 carreras + modelo final (~4 min)
+uv run python -m boxbox_ml.extract   # downloads results and weather (a few minutes the first time)
+uv run python -m boxbox_ml.train     # 66-race backtest + final model (~4 min)
 uv run pytest
 ```
 
@@ -136,24 +138,24 @@ uv run pytest
 ```bash
 cd backend
 uv sync
-cp .env.example .env                 # pon la URL de tu Postgres, o deja la de ejemplo si no la necesitas
+cp .env.example .env                 # put your Postgres URL, or keep the placeholder if you don't need it
 uv run uvicorn app.main:app --reload # http://localhost:8000/docs
 uv run pytest
 ```
 
-Con una base de datos de Neon (o cualquier Postgres), crea las tablas y carga los resultados:
+With a Neon database (or any Postgres), create the tables and load the results:
 
 ```bash
-uv run python -m scripts.init_db                      # en backend/
+uv run python -m scripts.init_db                      # in backend/
 cd ../boxbox-ml && uv run python -m boxbox_ml.load_db
 ```
 
-| Variable (`backend/.env`) | Uso |
+| Variable (`backend/.env`) | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Conexión *pooled* (host con `-pooler` en Neon). La usa la API. |
-| `DATABASE_URL_UNPOOLED` | Conexión directa, para crear tablas. Opcional; si falta se usa la anterior. |
-| `DB_ECHO` | `true` para ver el SQL en el log. |
-| `MODEL_PATH` | Ruta del modelo. Por defecto `../boxbox-ml/artifacts/model.joblib`. |
+| `DATABASE_URL` | *Pooled* connection (host with `-pooler` on Neon). Used by the API. |
+| `DATABASE_URL_UNPOOLED` | Direct connection, for creating tables. Optional; falls back to the one above. |
+| `DB_ECHO` | `true` to log SQL. |
+| `MODEL_PATH` | Model location. Defaults to `../boxbox-ml/artifacts/model.joblib`. |
 
 ### 3. Web
 
@@ -161,30 +163,30 @@ cd ../boxbox-ml && uv run python -m boxbox_ml.load_db
 cd frontend
 pnpm install
 cp .env.example .env.local           # BOXBOX_API_URL=http://localhost:8000
-pnpm dev                             # http://localhost:3000 → redirige a /es o /en según el navegador
+pnpm dev                             # http://localhost:3000 → redirects to /es or /en based on the browser
 ```
 
-`BOXBOX_API_URL` solo se usa en el servidor de Next.js: el navegador nunca llama a la API directamente, así que
-no hace falta CORS.
+`BOXBOX_API_URL` is only used by the Next.js server: the browser never calls the API directly, so no CORS
+is needed.
 
 ### Docker (API)
 
 ```bash
-docker build -f backend/Dockerfile -t boxbox-api .   # desde la raíz: la API depende de boxbox-ml/
+docker build -f backend/Dockerfile -t boxbox-api .   # from the root: the API depends on boxbox-ml/
 docker run --env-file backend/.env -p 8000:8000 boxbox-api
 ```
 
 ## API
 
-| Método | Ruta | Qué devuelve |
+| Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/health` | Versión del modelo, métricas del backtest y datos del entrenamiento (filas, árboles, importancia de cada variable) |
-| GET | `/races/upcoming` | Próximos GP con el pronóstico de la salida; `weather` es `null` hasta que la carrera entra en los 14 días del pronóstico |
-| GET | `/drivers` | Parrilla actual, con la posición de salida de la última carrera |
-| GET | `/circuits` | Circuitos que conoce el modelo |
-| GET | `/review` | Backtest carrera a carrera: favorito del modelo frente al ganador real |
-| GET | `/review/{season}/{round}` | Una carrera del backtest con la parrilla prevista completa y la posición final real |
-| POST | `/predict` | Probabilidad de victoria y podio por piloto |
+| GET | `/health` | Model version, backtest metrics and training details (rows, trees, feature importance) |
+| GET | `/races/upcoming` | Upcoming GPs with the race-start forecast; `weather` is `null` until the race is within the 14-day forecast range |
+| GET | `/drivers` | Current grid, with each driver's starting slot at the last race |
+| GET | `/circuits` | Circuits the model knows |
+| GET | `/review` | Race-by-race backtest: the model's favourite vs the actual winner |
+| GET | `/review/{season}/{round}` | One backtest race with the full predicted field and the real finishing positions |
+| POST | `/predict` | Win and podium probability per driver |
 
 ```http
 POST /predict
@@ -203,60 +205,60 @@ Content-Type: application/json
 }
 ```
 
-Con la parrilla completa, `normalize: true` reescala para que las victorias sumen 100 % y los podios 300 %.
-La documentación interactiva está en `/docs`.
+With the full grid, `normalize: true` rescales so win chances add up to 100 % and podium chances to 300 %.
+Interactive docs are at `/docs`.
 
-## Reentreno automático
+## Automatic retraining
 
-[`.github/workflows/retrain.yml`](.github/workflows/retrain.yml) se ejecuta todos los días a las 06:00 UTC
-(Jolpica publica los resultados unas horas después de la carrera) y también a mano desde la pestaña *Actions*:
+[`.github/workflows/retrain.yml`](.github/workflows/retrain.yml) runs every day at 06:00 UTC (Jolpica publishes
+results a few hours after the race) and can also be started by hand from the *Actions* tab:
 
-1. descarga los resultados y el clima nuevos (las temporadas cerradas quedan en caché);
-2. si hay una carrera más reciente que la última que conoce el modelo (`data_to` en `metrics.json`), reentrena;
-3. **puerta de calidad**: el modelo nuevo tiene que ganar a la línea base «solo parrilla» en log loss y AUC;
-4. pasa los tests de la API con el modelo nuevo;
-5. carga los resultados en Neon, si el repositorio tiene el secreto `DATABASE_URL`;
-6. hace commit de `model.joblib` y `metrics.json`. Ese push redespliega Render y Vercel.
+1. downloads new results and weather (finished seasons stay cached);
+2. if there is a race newer than the last one the model knows (`data_to` in `metrics.json`), it retrains;
+3. **quality gate**: the new model must beat the grid-only baseline on log loss and AUC;
+4. runs the API tests against the new model;
+5. loads the results into Neon, if the repository has a `DATABASE_URL` secret;
+6. commits `model.joblib` and `metrics.json`. That push redeploys Render and Vercel.
 
-Si algo falla, el modelo desplegado no cambia y GitHub avisa por correo. Como el modelo vive en git, volver a la
-versión anterior es un `git revert`.
+If any step fails, the deployed model stays as it is and GitHub sends an email. Because the model lives in git,
+rolling back is a `git revert`.
 
-## Despliegue
+## Deployment
 
-Los dos servicios se despliegan solos con cada push a `main`.
+Both services deploy on their own with every push to `main`.
 
-| Servicio | Dónde | Configuración |
+| Service | Where | Configuration |
 | --- | --- | --- |
-| API | Render, Docker, región Virginia (junto a Neon) | `backend/Dockerfile` con contexto en la raíz del repo. Variable `DATABASE_URL`. |
-| Web | Vercel, raíz `frontend/`, Node 24 | Variable `BOXBOX_API_URL` con la URL de la API. Instalación `npx -y pnpm@11.24.0 install --frozen-lockfile` y build `npx -y pnpm@11.24.0 run build` (Vercel solo lee `packageManager` en la raíz del repo). |
-| Reentreno | GitHub Actions | Secreto opcional `DATABASE_URL` para cargar los resultados en Neon. |
+| API | Render, Docker, Virginia region (next to Neon) | `backend/Dockerfile` with the repository root as context. Variable `DATABASE_URL`. |
+| Web | Vercel, root `frontend/`, Node 24 | Variable `BOXBOX_API_URL` with the API URL. Install `npx -y pnpm@11.24.0 install --frozen-lockfile` and build `npx -y pnpm@11.24.0 run build` (Vercel only reads `packageManager` at the repository root). |
+| Retraining | GitHub Actions | Optional `DATABASE_URL` secret to load results into Neon. |
 
-## Calidad
+## Quality
 
 ```bash
-cd boxbox-ml && uv run pytest        # fuentes de datos y variables
-cd backend   && uv run pytest        # API contra el modelo real
-cd frontend  && pnpm test            # lógica de parrilla, idioma e historial (node --test)
+cd boxbox-ml && uv run pytest        # data sources and features
+cd backend   && uv run pytest        # API against the real model
+cd frontend  && pnpm test            # grid, language and track-record logic (node --test)
 cd frontend  && pnpm lint && pnpm format:check && pnpm build
 ```
 
-Convenciones del repo: dependencias con versión exacta (uv.lock y pnpm-lock.yaml), uv para Python y pnpm para
-Node, componentes en Atomic Design, textos siempre en los diccionarios `es` / `en`. Las animaciones (anime.js)
-se declaran con atributos `data-anim` y se desactivan si el sistema pide reducir el movimiento.
+Repository conventions: exact dependency versions (uv.lock and pnpm-lock.yaml), uv for Python and pnpm for Node,
+Atomic Design components, and all copy in the `es` / `en` dictionaries. Animations (anime.js) are declared
+through `data-anim` attributes and switch off when the system asks for reduced motion.
 
-## Limitaciones
+## Limitations
 
-- **Pocos datos.** Unas 2.000 filas y un centenar de ganadores: cada victoria rara pesa mucho.
-- **Sin telemetría.** FastF1 exige una suscripción a F1 TV para vueltas y telemetría, así que el modelo no ve el
-  ritmo de carrera, la estrategia, los neumáticos ni los safety cars.
-- **La parrilla es una suposición** hasta que se disputa la clasificación: por defecto se usa el orden de la última carrera.
-- **Sin vigilancia de deriva** todavía: las predicciones se registran, pero aún no hay alertas cuando el modelo empeora.
+- **Little data.** About 2,000 rows and around a hundred winners: every rare win weighs a lot.
+- **No telemetry.** FastF1 needs an F1 TV subscription for laps and telemetry, so the model can't see race pace,
+  strategy, tyres or safety cars.
+- **The grid is a guess** until qualifying is run: by default it uses the last race's starting order.
+- **No drift monitoring** yet: predictions are logged, but nothing alerts when the model gets worse.
 
-## Datos y créditos
+## Data and credits
 
-- Resultados y calendario: [Jolpica F1 API](https://github.com/jolpica/jolpica-f1), el sucesor de Ergast, a través
-  del cliente de [FastF1](https://github.com/theOehrly/Fast-F1).
-- Clima: [Open-Meteo](https://open-meteo.com/) (reanálisis ERA5 para el histórico y pronóstico para las próximas carreras).
+- Results and calendar: [Jolpica F1 API](https://github.com/jolpica/jolpica-f1), the Ergast successor, through
+  the [FastF1](https://github.com/theOehrly/Fast-F1) client.
+- Weather: [Open-Meteo](https://open-meteo.com/) (ERA5 reanalysis for history, forecast for upcoming races).
 
-Fórmula 1, F1 y los nombres de equipos y pilotos son marcas de sus respectivos dueños. Este proyecto no está
-afiliado a ellos.
+Formula 1, F1 and the team and driver names are trademarks of their respective owners. This project is not
+affiliated with them.
