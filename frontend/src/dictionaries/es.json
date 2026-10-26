@@ -30,6 +30,7 @@
     "wind": "Viento",
     "forecast": "Pronóstico de Open-Meteo para las dos primeras horas de carrera · {start}",
     "noForecast": "Aún no hay pronóstico: llega el {date}. Hasta entonces el modelo corre sin datos de clima y asume pista seca.",
+    "forecastDown": "El pronóstico no está disponible ahora mismo. El modelo corre sin datos de clima y asume pista seca; se reintenta solo cada hora.",
     "noRaces": "No quedan carreras en el calendario. La parrilla se abre de nuevo cuando salga el de la próxima temporada.",
     "countdown": "Semáforo apagado en",
     "qualifying": "Parrilla de la clasificación ya cargada. Si hubo sanciones, mueve a los pilotos afectados."

@@ -34,17 +34,17 @@ export function SiteHeader({
             {dict.tagline}
           </span>
         </a>
-        {/* Phones put the sections on their own row under the logo. */}
+        {/* Phones put the sections on their own two-row grid under the logo. */}
         <nav
           aria-label={dict.nav}
-          className="order-last flex w-full border-3 border-fg sm:order-none sm:mr-auto sm:w-auto"
+          className="order-last grid w-full grid-cols-6 gap-[3px] border-3 border-fg bg-fg sm:order-none sm:mr-auto sm:flex sm:w-auto sm:gap-0"
         >
           {pages.map((p) => (
             <Link
               key={p.path}
               href={`/${lang}${p.path}`}
               aria-current={p.path === path ? "page" : undefined}
-              className="flex-1 px-2 py-1.5 text-center text-xs font-black uppercase italic not-first:border-l-3 not-first:border-fg hover:bg-raised aria-[current=page]:bg-fg aria-[current=page]:text-ground sm:flex-none sm:px-4 sm:text-sm"
+              className="col-span-2 bg-ground px-2 py-2.5 text-center text-xs font-black uppercase italic hover:bg-raised aria-[current=page]:bg-fg aria-[current=page]:text-ground nth-[n+4]:col-span-3 sm:px-4 sm:py-1.5 sm:text-sm sm:not-first:border-l-3 sm:not-first:border-fg"
             >
               {p.label}
             </Link>

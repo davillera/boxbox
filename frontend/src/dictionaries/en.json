@@ -30,6 +30,7 @@
     "wind": "Wind",
     "forecast": "Open-Meteo forecast for the first two hours from lights out · {start}",
     "noForecast": "No forecast yet: it arrives on {date}. Until then the model runs without weather and assumes a dry track.",
+    "forecastDown": "The forecast is unavailable right now. The model runs without weather and assumes a dry track; it retries by itself every hour.",
     "noRaces": "No races left on the calendar. The grid opens again when the next season's schedule is out.",
     "countdown": "Lights out in",
     "qualifying": "Qualifying grid loaded. If there were penalties, move the drivers affected."

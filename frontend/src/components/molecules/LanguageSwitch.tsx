@@ -25,7 +25,7 @@ export function LanguageSwitch({
           href={`/${locale}${path}`}
           hrefLang={locale}
           aria-current={locale === current ? "page" : undefined}
-          className="px-3 py-1.5 text-sm font-black uppercase italic not-first:border-l-3 not-first:border-fg hover:bg-raised aria-[current=page]:bg-pirelli aria-[current=page]:text-ink"
+          className="px-3 py-2 text-sm font-black uppercase italic not-first:border-l-3 not-first:border-fg hover:bg-raised aria-[current=page]:bg-pirelli aria-[current=page]:text-ink"
         >
           {locale}
         </a>

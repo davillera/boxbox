@@ -88,12 +88,14 @@ export function RaceSetup({ dict, lang, races, value, onChange }: Props) {
         </figure>
       ) : (
         <p className="border-3 border-dashed border-fg p-3 text-sm leading-relaxed font-semibold">
-          {fill(dict.noForecast, {
-            date: date(`${race.forecast_from}T00:00:00Z`, {
-              day: "numeric",
-              month: "long",
-            }),
-          })}
+          {race.forecast_from <= new Date().toISOString().slice(0, 10)
+            ? dict.forecastDown // the window is already open, so the fetch failed
+            : fill(dict.noForecast, {
+                date: date(`${race.forecast_from}T00:00:00Z`, {
+                  day: "numeric",
+                  month: "long",
+                }),
+              })}
         </p>
       )}
     </div>
