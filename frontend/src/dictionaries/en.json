@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "BoxBox · Who wins on Sunday?",
+    "description": "Win and podium chances for the next F1 race from the starting grid, the circuit and the weather. An XGBoost model trained on real results since 2022."
+  },
+  "header": {
+    "tagline": "F1 race predictor",
+    "language": "Language",
+    "theme": "Switch between light and dark mode",
+    "source": "Source on GitHub"
+  },
+  "intro": {
+    "title": "Who wins on Sunday?",
+    "lede": "Pick the circuit and the weather, set the grid, and the model works out every driver's chance of winning and of reaching the podium in the next race."
+  },
+  "setup": {
+    "title": "The race",
+    "circuit": "Circuit",
+    "conditions": "Track",
+    "dry": "Dry",
+    "wet": "Wet",
+    "airTemp": "Temperature",
+    "humidity": "Humidity",
+    "wind": "Wind"
+  },
+  "grid": {
+    "title": "Starting grid",
+    "hint": "Drag a driver to another slot, or tap two drivers to swap them.",
+    "reset": "Reset",
+    "resetHint": "Back to the starting order of the last race",
+    "selected": "Selected. Tap another driver to swap.",
+    "swap": "Move {driver}, position {position}",
+    "swapped": "{a} and {b} swapped"
+  },
+  "predict": {
+    "submit": "Predict race",
+    "pending": "Calculating…",
+    "stale": "You changed the setup. Predict again to update."
+  },
+  "board": {
+    "title": "Pit board",
+    "emptyTitle": "Box, box",
+    "empty": "Set up the race and press “Predict race”. The most likely podium shows up here.",
+    "win": "win",
+    "podium": "podium",
+    "from": "starts P{grid}",
+    "limit": "Heads-up: in the backtest the model's favourite won {model} of races, while “pole sitter wins” was right {baseline} of the time."
+  },
+  "table": {
+    "title": "Predicted order",
+    "caption": "Normalised over all 22 drivers: win chances add up to 100 % and podium chances to 300 %.",
+    "rank": "Pos.",
+    "driver": "Driver",
+    "grid": "Grid",
+    "win": "Win",
+    "podium": "Podium"
+  },
+  "trust": {
+    "title": "How far to trust it",
+    "intro": "Walk-forward backtest: the model predicted {races} races from the last 3 seasons without having seen them, and was compared with a simple rule that only uses the grid.",
+    "metric": "Metric",
+    "model": "Model",
+    "baseline": "Grid only",
+    "pick": "Favourite wins",
+    "podium": "Top 3 on the podium",
+    "auc": "Win AUC",
+    "logloss": "Log loss (lower is better)",
+    "honest": "The model ranks the whole field better (AUC and log loss), but when it has to name a single winner it is right less often than “pole sitter wins”. Read it as chances, not a sure bet.",
+    "footer": "Data to {dataTo} · {model} {version} · Results from Jolpica, weather from Open-Meteo. Independent project, not affiliated with Formula 1.",
+    "source": "Source on GitHub"
+  },
+  "errors": {
+    "offlineTitle": "No signal from the pit wall",
+    "offline": "Could not reach the prediction API. Check that the backend is running and reload the page.",
+    "retry": "Retry",
+    "predict": "The prediction failed.",
+    "network": "Could not reach the API."
+  }
+}

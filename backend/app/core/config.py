@@ -30,12 +30,6 @@ class Settings(BaseSettings):
     model_path: Path = Field(
         default=BACKEND_DIR.parent / "boxbox-ml" / "artifacts" / "model.joblib", alias="MODEL_PATH"
     )
-    # Comma-separated list of allowed browser origins (the Next.js frontend).
-    cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
-
-    @property
-    def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @field_validator("database_url", "database_url_unpooled")
     @classmethod

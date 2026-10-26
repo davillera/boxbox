@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T00:00:00Z",
+  "title": "Design System: BoxBox",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "Tyre Rubber Ink", "canonical": "#0d0d0d", "tonalRamp": ["#0d0d0d", "#1b1b1a", "#2c2c2a", "#55554f", "#808079", "#b0b0aa", "#dcdcd6", "#f2f2ee"] },
+      "chalk": { "role": "neutral", "displayName": "Compound White Chalk", "canonical": "#f2f2ee", "tonalRamp": ["#0d0d0d", "#1b1b1a", "#2c2c2a", "#55554f", "#808079", "#b0b0aa", "#dcdcd6", "#f2f2ee"] },
+      "smoke": { "role": "neutral", "displayName": "Tyre Smoke", "canonical": "#b0b0aa", "tonalRamp": ["#0d0d0d", "#1b1b1a", "#2c2c2a", "#55554f", "#808079", "#b0b0aa", "#dcdcd6", "#f2f2ee"] },
+      "pirelli": { "role": "primary", "displayName": "Pirelli Yellow", "canonical": "#ffd100", "tonalRamp": ["#3d3200", "#665300", "#8f7500", "#b89700", "#e0b800", "#ffd100", "#ffe366", "#fff4c2"] },
+      "redline": { "role": "secondary", "displayName": "Pirelli Red", "canonical": "#e4002b", "tonalRamp": ["#3a000b", "#5e0012", "#8a001a", "#b70022", "#e4002b", "#ff4d6a", "#ff99aa", "#ffe0e6"] },
+      "wet": { "role": "tertiary", "displayName": "Wet Compound Blue", "canonical": "#0067b1", "tonalRamp": ["#001a2e", "#002c4d", "#00437a", "#0067b1", "#2e8bd1", "#6aaee0", "#a8cfee", "#e0eef9"] },
+      "ground-dark": { "role": "neutral", "displayName": "Ground (dark, rubber)", "canonical": "var(--ground)", "tonalRamp": ["#0d0d0d", "#1b1b1a", "#2c2c2a", "#55554f", "#808079", "#b0b0aa", "#dcdcd6", "#f2f2ee"] },
+      "ground-light": { "role": "neutral", "displayName": "Ground (light, chalk)", "canonical": "var(--ground)", "tonalRamp": ["#0d0d0d", "#1b1b1a", "#2c2c2a", "#55554f", "#808079", "#b0b0aa", "#dcdcd6", "#e9e9e4"] },
+      "panel-dark": { "role": "neutral", "displayName": "Panel (dark)", "canonical": "var(--panel)" },
+      "panel-light": { "role": "neutral", "displayName": "Panel (light)", "canonical": "var(--panel)" },
+      "raised-dark": { "role": "neutral", "displayName": "Raised (dark)", "canonical": "var(--raised)" },
+      "raised-light": { "role": "neutral", "displayName": "Raised (light)", "canonical": "var(--raised)" },
+      "fg-dark": { "role": "neutral", "displayName": "Foreground (dark)", "canonical": "var(--fg)" },
+      "fg-light": { "role": "neutral", "displayName": "Foreground (light)", "canonical": "var(--fg)" },
+      "muted-dark": { "role": "neutral", "displayName": "Muted (dark)", "canonical": "var(--muted)" },
+      "muted-light": { "role": "neutral", "displayName": "Muted (light)", "canonical": "var(--muted)" },
+      "shade-dark": { "role": "primary", "displayName": "Shadow Shade (dark = yellow)", "canonical": "var(--shade)" },
+      "shade-light": { "role": "neutral", "displayName": "Shadow Shade (light = ink)", "canonical": "var(--shade)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (sidewall)", "purpose": "The single H1. Sidewall lettering: font-stretch 125%, italic, 900, uppercase." },
+      "board-code": { "displayName": "Board code", "purpose": "Driver codes on pit-board slats; 60px from sm." },
+      "headline": { "displayName": "Headline (sidewall)", "purpose": "Section titles inside panels." },
+      "figure": { "displayName": "Figure", "purpose": "Win % on slats, in pirelli; 48px from sm." },
+      "lede": { "displayName": "Lede", "purpose": "Intro under the H1, muted, max 62ch." },
+      "body": { "displayName": "Body", "purpose": "Captions, prose and table cells, with tabular figures." },
+      "label": { "displayName": "Label", "purpose": "Uppercase muted form labels and legends." },
+      "data-narrow": { "displayName": "Data narrow", "purpose": "Percentage labels beside probability bars (85% width)." }
+    },
+    "shadows": [
+      { "name": "hard", "value": "6px 6px 0 0 var(--shade)", "purpose": "Panels, the select popover, and the hover state of secondary controls. Yellow in dark mode, ink in light mode." },
+      { "name": "hard-sm", "value": "3px 3px 0 0 var(--shade)", "purpose": "Secondary controls at rest, plus focus-within on inputs and the open select." },
+      { "name": "red", "value": "6px 6px 0 0 var(--color-redline)", "purpose": "Under every yellow surface: pit board, primary button, wordmark, selected grid card." },
+      { "name": "red-hover", "value": "8px 8px 0 0 var(--color-redline)", "purpose": "Primary button hover." },
+      { "name": "grid-card-idle", "value": "3px 3px 0 0 var(--color-smoke)", "purpose": "Grid cards at rest on the ink tarmac; turns pirelli on hover." }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Easing for slat-drop and bar-grow." },
+      { "name": "slat-drop", "value": "520ms, from translateY(-115%) rotateX(70deg) opacity 0 to none, origin top, 900px perspective", "purpose": "Pit-board slats flip in on every prediction, staggered by 110ms." },
+      { "name": "bar-grow", "value": "700ms, from scaleX(0), origin left", "purpose": "Probability bars grow in, staggered by 25ms per row." },
+      { "name": "control-shift", "value": "150ms ease-out on translate and box-shadow", "purpose": "Hover lift of -2px; press of +2px with the shadow removed." },
+      { "name": "reduced-motion", "value": "animation and transition durations 1ms, delay 0ms", "purpose": "Applies under prefers-reduced-motion: reduce." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "container", "value": "1440px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single PREDICT action: yellow slab with a red shadow, sticky in the form.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"/><line x1=\"4\" x2=\"4\" y1=\"22\" y2=\"15\"/></svg>Predict race</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 24px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 18px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0.025em; background: var(--color-pirelli, #ffd100); color: var(--color-ink, #0d0d0d); border: 3px solid var(--color-ink, #0d0d0d); border-radius: 0; box-shadow: 6px 6px 0 0 var(--color-redline, #e4002b); cursor: pointer; transition: translate 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-primary:hover { translate: -2px -2px; box-shadow: 8px 8px 0 0 var(--color-redline, #e4002b); } .ds-btn-primary:active { translate: 2px 2px; box-shadow: none; } .ds-btn-primary:focus-visible { outline: 3px solid var(--color-wet, #0067b1); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Small ground-filled control with a shade shadow (Reset).",
+      "html": "<button class=\"ds-btn-secondary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg>Reset</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0.025em; background: var(--ground, #0d0d0d); color: var(--fg, #f2f2ee); border: 3px solid var(--fg, #f2f2ee); border-radius: 0; box-shadow: 3px 3px 0 0 var(--shade, #ffd100); cursor: pointer; transition: translate 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-secondary:hover { translate: -2px -2px; box-shadow: 6px 6px 0 0 var(--shade, #ffd100); } .ds-btn-secondary:active { translate: 2px 2px; box-shadow: none; } .ds-btn-secondary:focus-visible { outline: 3px solid var(--color-wet, #0067b1); outline-offset: 3px; }"
+    },
+    {
+      "name": "Number Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Weather input: 3px frame, heavy value, raised unit cell.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-temp\">Temperature</label><div class=\"ds-input-wrap\"><input id=\"ds-temp\" class=\"ds-input\" type=\"number\" value=\"24\"><span class=\"ds-unit\">°C</span></div></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-label { font-size: 12px; font-weight: 700; letter-spacing: 0.025em; text-transform: uppercase; color: var(--muted, #b0b0aa); } .ds-input-wrap { display: flex; border: 3px solid var(--fg, #f2f2ee); background: var(--ground, #0d0d0d); } .ds-input-wrap:focus-within { box-shadow: 3px 3px 0 0 var(--shade, #ffd100); } .ds-input { width: 100%; min-width: 0; background: transparent; border: 0; outline: none; padding: 8px 10px; font: inherit; font-size: 18px; font-weight: 800; color: var(--fg, #f2f2ee); caret-color: var(--color-redline, #e4002b); font-feature-settings: 'tnum' 1; } .ds-input:invalid { color: var(--color-redline, #e4002b); } .ds-unit { display: flex; align-items: center; padding: 0 8px; border-left: 3px solid var(--fg, #f2f2ee); background: var(--raised, #2c2c2a); color: var(--fg, #f2f2ee); font-size: 14px; font-weight: 700; }"
+    },
+    {
+      "name": "Select Picker",
+      "kind": "input",
+      "refersTo": "select-field",
+      "description": "Native select framed in 3px with a yellow chevron handle.",
+      "html": "<div class=\"ds-select-wrap\"><select class=\"ds-select\"><option>USA — Circuit of the Americas</option><option>Japan — Suzuka Circuit</option></select><span class=\"ds-select-handle\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg></span></div>",
+      "css": ".ds-select-wrap { position: relative; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-select { width: 100%; appearance: none; cursor: pointer; border: 3px solid var(--fg, #f2f2ee); border-radius: 0; background: var(--ground, #0d0d0d); color: var(--fg, #f2f2ee); padding: 10px 48px 10px 12px; font: inherit; font-size: 18px; font-weight: 800; outline: none; } .ds-select:hover { background: var(--panel, #1b1b1a); } .ds-select:focus-visible { box-shadow: 3px 3px 0 0 var(--shade, #ffd100); outline: 3px solid var(--color-wet, #0067b1); outline-offset: 3px; } .ds-select-handle { pointer-events: none; position: absolute; top: 0; bottom: 0; right: 0; width: 40px; display: flex; align-items: center; justify-content: center; border-left: 3px solid var(--fg, #f2f2ee); background: var(--color-pirelli, #ffd100); color: var(--color-ink, #0d0d0d); }"
+    },
+    {
+      "name": "Track Toggle",
+      "kind": "chip",
+      "refersTo": "track-toggle-dry-on",
+      "description": "Dry/Wet segmented radio: yellow for dry, wet blue for rain.",
+      "html": "<div class=\"ds-toggle\"><button class=\"ds-toggle-opt ds-dry\" aria-pressed=\"true\">Dry</button><button class=\"ds-toggle-opt ds-wet\" aria-pressed=\"false\">Wet</button></div>",
+      "css": ".ds-toggle { display: grid; grid-template-columns: 1fr 1fr; border: 3px solid var(--fg, #f2f2ee); background: var(--ground, #0d0d0d); font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-toggle-opt { padding: 10px 0; border: 0; background: transparent; color: var(--fg, #f2f2ee); font: inherit; font-size: 16px; font-weight: 900; font-style: italic; text-transform: uppercase; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-toggle-opt + .ds-toggle-opt { border-left: 3px solid var(--fg, #f2f2ee); } .ds-toggle-opt[aria-pressed=false]:hover { background: var(--raised, #2c2c2a); } .ds-dry[aria-pressed=true] { background: var(--color-pirelli, #ffd100); color: var(--color-ink, #0d0d0d); } .ds-wet[aria-pressed=true] { background: var(--color-wet, #0067b1); color: var(--color-chalk, #f2f2ee); } .ds-toggle-opt:focus-visible { outline: 3px solid var(--color-wet, #0067b1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Grid Slot",
+      "kind": "custom",
+      "refersTo": "grid-slot",
+      "description": "Bracketed position on the fixed ink tarmac holding a chalk driver card with a team swatch.",
+      "html": "<div class=\"ds-tarmac\"><div class=\"ds-slot\"><span class=\"ds-bracket\"></span><span class=\"ds-slot-pos\">P1</span><button class=\"ds-card\"><span class=\"ds-swatch\" style=\"background:#3671c6\"></span><span class=\"ds-card-text\"><span class=\"ds-card-code\">VER</span><span class=\"ds-card-team\">Red Bull</span></span></button></div><div class=\"ds-slot ds-offset\"><span class=\"ds-bracket\"></span><span class=\"ds-slot-pos\">P2</span><button class=\"ds-card\" aria-pressed=\"true\"><span class=\"ds-swatch\" style=\"background:#e8002d\"></span><span class=\"ds-card-text\"><span class=\"ds-card-code\">LEC</span><span class=\"ds-card-team\">Ferrari</span></span></button></div></div>",
+      "css": ".ds-tarmac { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; padding: 16px 20px 56px; background: var(--color-ink, #0d0d0d); border: 3px solid var(--fg, #f2f2ee); font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-slot { position: relative; padding-top: 20px; } .ds-offset { translate: 0 55%; } .ds-bracket { position: absolute; left: 0; right: 0; top: 0; height: 70%; border: 3px solid rgb(242 242 238 / 0.7); border-bottom: 0; } .ds-slot-pos { position: absolute; top: 2px; left: 8px; font-size: 12px; font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: uppercase; color: var(--color-chalk, #f2f2ee); } .ds-card { position: relative; margin: 0 6px 6px; width: calc(100% - 12px); display: flex; align-items: center; gap: 8px; padding: 6px 8px; text-align: left; border: 3px solid var(--color-ink, #0d0d0d); background: var(--color-chalk, #f2f2ee); color: var(--color-ink, #0d0d0d); box-shadow: 3px 3px 0 0 var(--color-smoke, #b0b0aa); cursor: grab; transition: translate 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out; } .ds-card:hover { translate: -2px -2px; box-shadow: 3px 3px 0 0 var(--color-pirelli, #ffd100); } .ds-card[aria-pressed=true] { translate: -2px -2px; background: var(--color-pirelli, #ffd100); box-shadow: 6px 6px 0 0 var(--color-redline, #e4002b); } .ds-card:focus-visible { outline: 3px solid var(--color-wet, #0067b1); outline-offset: 3px; } .ds-swatch { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid var(--color-ink, #0d0d0d); outline: 1px solid rgb(242 242 238 / 0.4); } .ds-card-text { display: flex; flex-direction: column; line-height: 1.25; } .ds-card-code { font-size: 16px; font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: uppercase; } .ds-card-team { font-size: 12px; font-weight: 600; color: rgb(13 13 13 / 0.7); white-space: nowrap; }"
+    },
+    {
+      "name": "Pit Board Slat",
+      "kind": "card",
+      "refersTo": "board-slat",
+      "description": "Yellow pit board with ink slats: compound-banded tyre badge, sidewall code, yellow win %.",
+      "html": "<section class=\"ds-board\"><h2 class=\"ds-board-title\">Pit board</h2><div class=\"ds-slat\"><svg class=\"ds-tyre\" viewBox=\"0 0 64 64\" aria-hidden=\"true\"><circle cx=\"32\" cy=\"32\" r=\"30\" fill=\"#0d0d0d\"/><circle cx=\"32\" cy=\"32\" r=\"22\" fill=\"none\" stroke=\"#e4002b\" stroke-width=\"5\"/><text x=\"32\" y=\"33\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#f2f2ee\" font-size=\"19\" font-weight=\"900\" font-style=\"italic\">P1</text></svg><span class=\"ds-slat-main\"><span class=\"ds-slat-code\">VER</span><span class=\"ds-slat-detail\">Max Verstappen · starts P1</span></span><span class=\"ds-slat-value\"><span class=\"ds-slat-pct\">62%</span><span class=\"ds-slat-label\">Win</span></span></div></section>",
+      "css": ".ds-board { padding: 16px; background: var(--color-pirelli, #ffd100); color: var(--color-ink, #0d0d0d); border: 3px solid var(--color-ink, #0d0d0d); box-shadow: 6px 6px 0 0 var(--color-redline, #e4002b); perspective: 900px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-board-title { margin: 0 4px 12px; font-size: 18px; font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: uppercase; } .ds-slat { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 24px; padding: 8px 20px 8px 8px; background: var(--color-ink, #0d0d0d); border: 3px solid var(--color-ink, #0d0d0d); transform-origin: top; animation: ds-slat-drop 520ms cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-tyre { width: 72px; height: 72px; } .ds-slat-main { display: flex; flex-direction: column; min-width: 0; } .ds-slat-code { font-size: 60px; line-height: 1; font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: uppercase; color: var(--color-chalk, #f2f2ee); } .ds-slat-detail { margin-top: 4px; font-size: 14px; font-weight: 600; color: var(--color-smoke, #b0b0aa); } .ds-slat-value { display: flex; flex-direction: column; align-items: flex-end; } .ds-slat-pct { font-size: 48px; line-height: 1; font-weight: 900; font-style: italic; color: var(--color-pirelli, #ffd100); font-feature-settings: 'tnum' 1; } .ds-slat-label { margin-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.025em; text-transform: uppercase; color: var(--color-smoke, #b0b0aa); } @keyframes ds-slat-drop { from { transform: translateY(-115%) rotateX(70deg); opacity: 0; } to { transform: none; opacity: 1; } } @media (prefers-reduced-motion: reduce) { .ds-slat { animation-duration: 1ms; } }"
+    },
+    {
+      "name": "Language Switch",
+      "kind": "nav",
+      "refersTo": "segmented-active",
+      "description": "ES/EN segmented switch in the header; the current locale is yellow.",
+      "html": "<nav class=\"ds-lang\" aria-label=\"Language\"><a href=\"#\" class=\"ds-lang-opt\">es</a><a href=\"#\" class=\"ds-lang-opt\" aria-current=\"page\">en</a></nav>",
+      "css": ".ds-lang { display: inline-flex; border: 3px solid var(--fg, #f2f2ee); background: var(--ground, #0d0d0d); box-shadow: 3px 3px 0 0 var(--shade, #ffd100); font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-lang-opt { padding: 6px 12px; font-size: 14px; font-weight: 900; font-style: italic; text-transform: uppercase; color: var(--fg, #f2f2ee); text-decoration: none; } .ds-lang-opt + .ds-lang-opt { border-left: 3px solid var(--fg, #f2f2ee); } .ds-lang-opt:hover { background: var(--raised, #2c2c2a); } .ds-lang-opt[aria-current=page] { background: var(--color-pirelli, #ffd100); color: var(--color-ink, #0d0d0d); } .ds-lang-opt:focus-visible { outline: 3px solid var(--color-wet, #0067b1); outline-offset: 3px; }"
+    },
+    {
+      "name": "Wordmark",
+      "kind": "custom",
+      "refersTo": "wordmark",
+      "description": "Skewed yellow block with sidewall lettering; 'box' in red.",
+      "html": "<span class=\"ds-wordmark\">Box<span class=\"ds-wordmark-red\">box</span></span>",
+      "css": ".ds-wordmark { display: inline-block; transform: skewX(-12deg); padding: 2px 10px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 30px; line-height: 1; font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: uppercase; background: var(--color-pirelli, #ffd100); color: var(--color-ink, #0d0d0d); border: 3px solid var(--color-ink, #0d0d0d); box-shadow: 6px 6px 0 0 var(--color-redline, #e4002b); } .ds-wordmark-red { color: var(--color-redline, #e4002b); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Goma Negra, the Pirelli Pit Wall",
+    "overview": "BoxBox is a pit wall built from rubber, paint and signboard. The ground is tyre-black in dark mode and pit-lane chalk in light mode. On top of it sit square slabs with 3px edges and hard offset shadows that never blur. Pirelli yellow is the colour of the call (the pit board, the primary action, the active option). Pirelli red is the colour of urgency and of the shadow under anything yellow. Wet blue appears only for rain and for focus. Type is one variable family, Archivo. It is pushed to 125% width, italic and 900 weight for \"sidewall lettering\", and pulled back to tabular body weights for data.\n\nDensity is that of a working dashboard: one form, one results column, full 22-car tables. Rows and controls are compact, but every surface keeps a heavy frame so the hierarchy reads at a glance. State is carried by tyre-compound colour bands (soft red, medium yellow, hard white) rather than by glow, gradient or blur. The world rejects the category default of a glassy dark dashboard with neon charts.\n\nSome parts of the world never change with the theme. The tarmac strip under the grid, the slats on the pit board, the tyre badges and the yellow surfaces are fixed. Only the ground, panels, text and shadow colour switch with `html[data-theme]`.",
+    "keyCharacteristics": [
+      "Two themes from one fixed Pirelli palette; only six themed tokens switch.",
+      "Zero radius everywhere, 3px borders, zero-blur offset shadows.",
+      "Sidewall lettering (expanded, italic, black, uppercase) for display, codes and actions; tabular numerals for all data.",
+      "Compound bands (red, yellow, white) as the podium state language.",
+      "Motion is mechanical: slats flip down, bars grow from the left, buttons shift by 2px."
+    ],
+    "rules": [
+      { "name": "The Fixed Palette Rule", "body": "Ink, chalk, smoke, pirelli, redline and wet never change with the theme. Only ground, panel, raised, fg, muted and shade switch. Surfaces drawn in fixed tokens (tarmac, slats, badges, yellow boards, grid cards) look identical in both themes.", "section": "colors" },
+      { "name": "The Red-Under-Yellow Rule", "body": "Any yellow surface that casts a shadow casts it in redline (`shadow-red`), never in shade. A yellow shadow under a yellow block disappears.", "section": "colors" },
+      { "name": "The Rain Is Blue Rule", "body": "Wet blue means rain or keyboard focus. Do not use it as a general accent.", "section": "colors" },
+      { "name": "The Sidewall Rule", "body": "Display text, section titles, driver codes and positions use the `font-sidewall` utility (font-stretch 125%, italic, 900, uppercase). Buttons and toggles use the same italic 900 uppercase at normal width. Body copy is never sidewall.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "`tnum` is set on the body, so every figure aligns in columns. Percentages and metrics are set at 800 to 900 weight.", "section": "typography" },
+      { "name": "The Shade Swap Rule", "body": "Hard shadows are drawn in `--shade`: yellow on rubber in dark mode, ink on chalk in light mode. Never hard-code the shadow colour on themed surfaces.", "section": "elevation" },
+      { "name": "The Pressed Flat Rule", "body": "On press, a control drops onto its shadow (translate +2px, shadow none).", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** frame every surface and control with a 3px border and square corners.",
+      "**Do** draw themed shadows with `--shade` (`shadow-hard` at 6px, `shadow-hard-sm` at 3px), and put `shadow-red` under every yellow surface.",
+      "**Do** use `font-sidewall` for display, section titles, driver codes and positions, and keep figures tabular.",
+      "**Do** keep the tarmac, slats, tyre badges and grid cards in fixed tokens so they read the same in both themes.",
+      "**Do** use compound colours (redline, pirelli, chalk, then smoke) for the podium order.",
+      "**Do** pair every team swatch with the driver code and team name.",
+      "**Do** keep the global focus ring at 3px wet blue, offset 3px.",
+      "**Do** let hover lift a control by 2px and press flatten it onto its shadow, in 150ms."
+    ],
+    "donts": [
+      "**Don't** round corners, blur shadows, or add gradients, glass or glow.",
+      "**Don't** put a shade (yellow) shadow under a yellow surface; use redline.",
+      "**Don't** use wet blue for anything except rain and focus.",
+      "**Don't** let team colour carry meaning on its own.",
+      "**Don't** set body copy in sidewall lettering.",
+      "**Don't** add motion that ignores the reduced-motion clamp."
+    ]
+  }
+}

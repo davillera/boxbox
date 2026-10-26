@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
 from app.core.config import get_settings
@@ -20,15 +19,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+# No CORS: the Next.js frontend calls this API from its server, never from the browser.
 def create_app() -> FastAPI:
-    settings = get_settings()
     app = FastAPI(title="BoxBox API", version="0.1.0", lifespan=lifespan)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origin_list,
-        allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
-    )
     app.include_router(router)
     return app
 

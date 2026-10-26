@@ -74,8 +74,23 @@ class DriverOut(BaseModel):
     last_name: str
     team_ref: str
     team_name: str
+    last_grid: int = Field(description="Grid slot at the last trained race; 0 = pit-lane start")
+
+
+class BacktestMetrics(BaseModel):
+    log_loss: float
+    win_auc: float
+    winner_pick_accuracy: float
+    podium_top3_precision: float
+    races: int
+
+
+class Backtest(BaseModel):
+    model: BacktestMetrics
+    baseline_grid_only: BacktestMetrics
 
 
 class HealthOut(BaseModel):
     status: str
     model: ModelInfo
+    backtest: Backtest

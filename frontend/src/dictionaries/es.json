@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "BoxBox · ¿Quién gana el domingo?",
+    "description": "Predicción de victoria y podio para la próxima carrera de F1 a partir de la parrilla, el circuito y el clima. Modelo XGBoost entrenado con resultados reales desde 2022."
+  },
+  "header": {
+    "tagline": "Predictor de carreras de F1",
+    "language": "Idioma",
+    "theme": "Cambiar entre modo claro y oscuro",
+    "source": "Código en GitHub"
+  },
+  "intro": {
+    "title": "¿Quién gana el domingo?",
+    "lede": "Elige el circuito y el clima, ordena la parrilla y el modelo calcula la probabilidad de victoria y de podio de cada piloto en la próxima carrera."
+  },
+  "setup": {
+    "title": "La carrera",
+    "circuit": "Circuito",
+    "conditions": "Pista",
+    "dry": "Seca",
+    "wet": "Lluvia",
+    "airTemp": "Temperatura",
+    "humidity": "Humedad",
+    "wind": "Viento"
+  },
+  "grid": {
+    "title": "Parrilla de salida",
+    "hint": "Arrastra un piloto a otra posición, o toca dos pilotos para intercambiarlos.",
+    "reset": "Restablecer",
+    "resetHint": "Vuelve al orden de salida de la última carrera",
+    "selected": "Seleccionado. Toca otro piloto para intercambiar.",
+    "swap": "Mover {driver}, posición {position}",
+    "swapped": "{a} y {b} intercambiados"
+  },
+  "predict": {
+    "submit": "Predecir carrera",
+    "pending": "Calculando…",
+    "stale": "Cambiaste la configuración. Vuelve a predecir para actualizar."
+  },
+  "board": {
+    "title": "Pizarra",
+    "emptyTitle": "Box, box",
+    "empty": "Configura la carrera y pulsa «Predecir carrera». Aquí aparece el podio más probable.",
+    "win": "victoria",
+    "podium": "podio",
+    "from": "sale P{grid}",
+    "limit": "Ojo: en el backtest, el favorito del modelo ganó el {model} de las carreras y «gana el que sale primero», el {baseline}."
+  },
+  "table": {
+    "title": "Clasificación prevista",
+    "caption": "Probabilidades normalizadas sobre los 22 pilotos: las de victoria suman 100 % y las de podio, 300 %.",
+    "rank": "Pos.",
+    "driver": "Piloto",
+    "grid": "Sale",
+    "win": "Victoria",
+    "podium": "Podio"
+  },
+  "trust": {
+    "title": "¿Cuánto fiarse?",
+    "intro": "Backtest walk-forward: el modelo predijo {races} carreras de las 3 últimas temporadas sin haberlas visto y se comparó con una regla simple basada solo en la parrilla.",
+    "metric": "Métrica",
+    "model": "Modelo",
+    "baseline": "Solo parrilla",
+    "pick": "El favorito gana",
+    "podium": "Acierto del top 3 en el podio",
+    "auc": "AUC de victoria",
+    "logloss": "Log loss (menos es mejor)",
+    "honest": "El modelo ordena mejor a todo el pelotón (AUC y log loss), pero al elegir un solo ganador acierta menos que «gana el que sale primero». Úsalo para ver probabilidades, no como una apuesta segura.",
+    "footer": "Datos hasta {dataTo} · {model} {version} · Resultados de Jolpica, clima de Open-Meteo. Proyecto independiente, sin afiliación con la Fórmula 1.",
+    "source": "Código en GitHub"
+  },
+  "errors": {
+    "offlineTitle": "Sin señal del muro",
+    "offline": "No se pudo conectar con la API de predicción. Comprueba que el backend está en marcha y vuelve a cargar la página.",
+    "retry": "Reintentar",
+    "predict": "La predicción falló.",
+    "network": "No se pudo contactar con la API."
+  }
+}

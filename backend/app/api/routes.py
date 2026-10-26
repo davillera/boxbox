@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/health", response_model=HealthOut, tags=["meta"])
 def health(service: ServiceDep) -> HealthOut:
-    return HealthOut(status="ok", model=service.model_info)
+    return HealthOut(status="ok", model=service.model_info, backtest=service.backtest)
 
 
 @router.get("/circuits", response_model=list[CircuitOut], tags=["catalog"])

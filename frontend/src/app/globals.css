@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* Theme set on <html data-theme> by the inline script in layout.tsx. Dark = rubber, light = chalk. */
+:root {
+  --ground: #0d0d0d;
+  --panel: #1b1b1a;
+  --raised: #2c2c2a;
+  --fg: #f2f2ee;
+  --muted: #b0b0aa;
+  --shade: #ffd100;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --ground: #e9e9e4;
+  --panel: #ffffff;
+  --raised: #dcdcd6;
+  --fg: #0d0d0d;
+  --muted: #55554f;
+  --shade: #0d0d0d;
+  color-scheme: light;
+}
+
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-shade: var(--shade);
+}
+
+@theme {
+  /* Fixed in both themes: rubber ink, chalk, Pirelli yellow and red, tyre compounds. */
+  --color-ink: #0d0d0d;
+  --color-chalk: #f2f2ee;
+  --color-smoke: #b0b0aa;
+  --color-pirelli: #ffd100;
+  --color-redline: #e4002b;
+  --color-wet: #0067b1;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-hard: 6px 6px 0 0 var(--shade);
+  --shadow-hard-sm: 3px 3px 0 0 var(--shade);
+  --shadow-red: 6px 6px 0 0 var(--color-redline);
+
+  --animate-slat: slat-drop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-bar: bar-grow 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes slat-drop {
+    from {
+      transform: translateY(-115%) rotateX(70deg);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  @keyframes bar-grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+}
+
+/* Sidewall lettering: expanded and slanted. */
+@utility font-sidewall {
+  font-stretch: 125%;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@utility font-narrow {
+  font-stretch: 85%;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "tnum" 1;
+  }
+
+  ::selection {
+    background: var(--color-pirelli);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-wet);
+    outline-offset: 3px;
+  }
+
+  input,
+  select {
+    caret-color: var(--color-redline);
+  }
+
+  * {
+    scrollbar-color: var(--fg) var(--ground);
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Customizable select where supported (Chromium); other browsers keep the native picker. */
+@supports (appearance: base-select) {
+  .brutal-select,
+  .brutal-select::picker(select) {
+    appearance: base-select;
+  }
+
+  .brutal-select::picker-icon {
+    display: none;
+  }
+
+  .brutal-select::picker(select) {
+    margin-block: 6px;
+    max-height: min(26rem, 60dvh);
+    border: 3px solid var(--fg);
+    background: var(--ground);
+    box-shadow: var(--shadow-hard);
+    padding: 0;
+  }
+
+  .brutal-select option {
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--raised);
+    font-weight: 700;
+    color: var(--fg);
+  }
+
+  .brutal-select option::checkmark {
+    content: "";
+    width: 0.6rem;
+    height: 0.6rem;
+    background: var(--color-redline);
+  }
+
+  .brutal-select option:hover,
+  .brutal-select option:focus-visible {
+    background: var(--color-pirelli);
+    color: var(--color-ink);
+    outline: none;
+  }
+
+  .brutal-select option:checked {
+    font-weight: 900;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

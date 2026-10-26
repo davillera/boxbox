@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 
 from app.models import Circuit, Driver, PredictionHistory
 from app.schemas import (
+    Backtest,
     CircuitOut,
     DriverOut,
     EntryPrediction,
@@ -48,6 +49,7 @@ class PredictionService:
         self.model_info = ModelInfo(
             name=meta["model_name"], version=meta["model_version"], trained_at=meta["trained_at"], data_to=meta["data_to"]
         )
+        self.backtest = Backtest.model_validate(meta["backtest"])
         latest = predictor.history.sort_values(["season", "round"]).groupby("driver_ref").tail(1)
         self._drivers = latest.set_index("driver_ref")[["driver_code", "first_name", "last_name", "team_name"]].to_dict("index")
         self._circuits = set(predictor.categories["circuit_ref"])
@@ -74,6 +76,7 @@ class PredictionService:
                 last_name=r.last_name,
                 team_ref=r.team_ref,
                 team_name=r.team_name,
+                last_grid=r.grid_position,
             )
             for r in df.itertuples()
         ]

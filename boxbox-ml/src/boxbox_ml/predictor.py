@@ -60,7 +60,7 @@ class RacePredictor:
         h = self.history
         last = h[(h["season"] == h["season"].max())]
         last = last[last["round"] == last["round"].max()]
-        cols = ["driver_ref", "driver_code", "first_name", "last_name", "team_ref", "team_name"]
+        cols = ["driver_ref", "driver_code", "first_name", "last_name", "team_ref", "team_name", "grid_position"]
         return last.sort_values(["team_name", "last_name"])[cols].reset_index(drop=True)
 
     def circuits(self) -> pd.DataFrame:

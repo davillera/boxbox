@@ -20,6 +20,7 @@ def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
     assert body["model"]["version"]
+    assert 0 < body["backtest"]["model"]["winner_pick_accuracy"] <= 1
 
 
 def test_catalog(client):
@@ -27,7 +28,8 @@ def test_catalog(client):
     drivers = client.get("/drivers").json()
     assert any(c["circuit_ref"] == "americas" for c in circuits)
     assert len(drivers) >= 20
-    assert {"driver_ref", "code", "team_name"} <= drivers[0].keys()
+    assert {"driver_ref", "code", "team_name", "last_grid"} <= drivers[0].keys()
+    assert all(0 <= d["last_grid"] <= 30 for d in drivers)
 
 
 def test_predict_returns_probabilities_and_logs_history(client, engine):

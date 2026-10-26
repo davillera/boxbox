@@ -28,7 +28,6 @@ uv run python -m scripts.init_db           # crear las tablas en Neon
 | `DATABASE_URL_UNPOOLED` | Conexión **directa** (sin `-pooler`). DDL / migraciones.   |
 | `DB_ECHO`               | `true` para loguear el SQL (opcional).                     |
 | `MODEL_PATH`            | Bundle del modelo (por defecto `../boxbox-ml/artifacts/model.joblib`). |
-| `CORS_ORIGINS`          | Orígenes permitidos, separados por comas (por defecto `http://localhost:3000`). |
 
 ## Backend: API
 
@@ -41,9 +40,9 @@ uv run pytest
 
 | Método | Ruta        | Descripción                                                       |
 | ------ | ----------- | ----------------------------------------------------------------- |
-| GET    | `/health`   | Estado y versión del modelo cargado                               |
+| GET    | `/health`   | Estado, versión del modelo y métricas del backtest                |
 | GET    | `/circuits` | Circuitos conocidos por el modelo                                 |
-| GET    | `/drivers`  | Parrilla actual (participantes de la última carrera)              |
+| GET    | `/drivers`  | Parrilla actual (participantes de la última carrera, con `last_grid`) |
 | POST   | `/predict`  | Probabilidad de victoria y podio por piloto; queda registrada en `prediction_history` |
 
 ```json
@@ -70,3 +69,22 @@ Se construye desde la raíz porque el backend depende de `boxbox-ml/`, y necesit
 docker build -f backend/Dockerfile -t boxbox-api .
 docker run --env-file backend/.env -p 8000:8000 boxbox-api
 ```
+
+## Frontend: dashboard
+
+Requiere Node 22+ y [pnpm](https://pnpm.io/). La API tiene que estar corriendo; el dashboard la llama desde el servidor (server action), así que no hace falta CORS.
+
+```bash
+cd frontend
+pnpm install
+cp .env.example .env.local   # BOXBOX_API_URL, por defecto http://localhost:8000
+pnpm dev                     # http://localhost:3000 -> redirige a /es o /en
+pnpm test                    # tests de parrilla e idioma (node --test)
+pnpm lint && pnpm format:check
+```
+
+| Variable         | Uso                                                       |
+| ---------------- | --------------------------------------------------------- |
+| `BOXBOX_API_URL` | URL base de la API FastAPI (solo servidor).               |
+
+Interfaz en español e inglés (`src/dictionaries/`), modo claro y oscuro, componentes en Atomic Design (`src/components/{atoms,molecules,organisms,templates}`).
