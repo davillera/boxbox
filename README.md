@@ -110,6 +110,6 @@ Interfaz en español e inglés (`src/dictionaries/`), modo claro y oscuro, compo
 | Pieza    | Dónde  | URL                                    | Configuración |
 | -------- | ------ | -------------------------------------- | ------------- |
 | API      | Render (Docker, Virginia, plan free) | https://boxbox-api-4nx4.onrender.com | `backend/Dockerfile` con contexto en la raíz; variable `DATABASE_URL` (pooled de Neon) puesta a mano en el dashboard |
-| Frontend | Vercel (raíz `frontend/`) | proyecto `boxbox` | `BOXBOX_API_URL` = URL de la API en Render; install `npx -y pnpm@11.24.0 install --frozen-lockfile` y build `npx -y pnpm@11.24.0 run build` (Vercel solo lee `packageManager` en la raíz del repo); Node 24 |
+| Frontend | Vercel (raíz `frontend/`) | https://boxbox-azure.vercel.app | `BOXBOX_API_URL` = URL de la API en Render; install `npx -y pnpm@11.24.0 install --frozen-lockfile` y build `npx -y pnpm@11.24.0 run build` (Vercel solo lee `packageManager` en la raíz del repo); Node 24 |
 
 Los dos se despliegan solos con cada push a `main`. El modelo (`boxbox-ml/artifacts/model.joblib`) va en el repo, así que reentrenar y hacer push publica el modelo nuevo. En el plan free de Render la API se duerme tras 15 min sin tráfico: la primera visita tarda ~1 min.
