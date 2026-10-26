@@ -1,0 +1,19 @@
+# Vercel builds the API from the repository root (the backend needs ../boxbox-ml and its model).
+# Keep these pins in sync with backend/pyproject.toml; the backend project itself is for local work.
+[project]
+name = "boxbox-api"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "boxbox-ml",
+    "fastapi==0.162.0",
+    "psycopg[binary]==3.3.6",
+    "pydantic-settings==2.16.1",
+    "sqlmodel==0.0.48",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+boxbox-ml = { path = "boxbox-ml" }

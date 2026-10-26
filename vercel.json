@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "main.py": {
+      "includeFiles": "{backend/app/**,boxbox-ml/artifacts/model.joblib}",
+      "excludeFiles": "{**/tests/**,**/__pycache__/**,frontend/**,docs/**,.impeccable/**}"
+    }
+  }
+}
