@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Flag, LoaderCircle } from "lucide-react";
 import { predictRace } from "@/app/[lang]/actions";
 import { Button } from "@/components/atoms/Button";
@@ -33,6 +34,8 @@ type Props = {
   /** `season-round` from the shared link, if it names a race still on the calendar. */
   initialRace?: string;
 };
+
+const REFRESH_MS = 60_000;
 
 type Run = {
   id: number;
@@ -70,8 +73,27 @@ export function PredictionWorkbench({
   const [pending, startTransition] = useTransition();
   const boardRef = useRef<HTMLDivElement>(null);
 
+  const router = useRouter();
+  // Re-run the server component so qualifying, forecast and race results appear during the weekend.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!document.hidden) router.refresh();
+    }, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [router]);
+
   const teams = new Map(drivers.map((d) => [d.driver_ref, d.team_ref]));
   const race = races.find((r) => raceKey(r) === selected);
+
+  // A new qualifying classification replaces the grid; later manual swaps are kept until the next one.
+  const qualiKey = JSON.stringify(race?.qualifying ?? null);
+  const seenQuali = useRef(qualiKey);
+  useEffect(() => {
+    if (seenQuali.current === qualiKey) return;
+    seenQuali.current = qualiKey;
+    setOrder(startingOrder(drivers, race?.qualifying));
+    setRun(null);
+  }, [qualiKey, drivers, race?.qualifying]);
   const w = race?.weather;
   const quali = new Map(race?.qualifying?.map((q) => [q.driver_ref, q]));
 

@@ -1,6 +1,7 @@
 """Upcoming races from the Jolpica calendar, each with the Open-Meteo forecast for its start.
 
-Held in memory for an hour: the calendar barely changes and forecasts refresh hourly at best.
+Held in memory for an hour (two minutes on a race weekend): the calendar barely changes and
+forecasts refresh hourly at best, but the qualifying result lands mid-weekend.
 The forecast is aggregated by boxbox_ml's own weather code, exactly like the training history.
 """
 
@@ -20,6 +21,7 @@ log = logging.getLogger(__name__)
 
 CALENDAR_URL = "https://api.jolpi.ca/ergast/f1/current/races/?limit=100"
 CACHE_SECONDS = 3600
+WEEKEND_CACHE_SECONDS = 120
 DEFAULT_START = "13:00:00Z"  # Jolpica leaves the time empty for some races
 
 _cache: tuple[float, list[RaceOut]] | None = None
@@ -104,16 +106,23 @@ def _fetch_calendar() -> list[RaceOut]:
     return races
 
 
+def _ttl(races: list[RaceOut]) -> int:
+    """Refresh fast on a race weekend so the qualifying grid shows up soon after the session."""
+    now = datetime.now(UTC)
+    weekend = any(timedelta(0) < r.start_utc - now <= QUALIFYING_WINDOW for r in races)
+    return WEEKEND_CACHE_SECONDS if weekend else CACHE_SECONDS
+
+
 def upcoming_races(after: tuple[int, int]) -> list[RaceOut]:
     """Races not started yet and later than `after` (the last trained season, round)."""
     global _cache
-    if _cache is None or time.monotonic() - _cache[0] > CACHE_SECONDS:
+    if _cache is None or time.monotonic() - _cache[0] > _ttl(_cache[1]):
         try:
             _cache = (time.monotonic(), _fetch_calendar())
         except Exception:
             if _cache is None:
                 raise
             log.warning("calendar refresh failed; serving the cached copy", exc_info=True)
-            _cache = (time.monotonic(), _cache[1])  # retry in an hour, not on every request
+            _cache = (time.monotonic(), _cache[1])  # retry after a TTL, not on every request
     now = datetime.now(UTC)
     return [r for r in _cache[1] if r.start_utc > now and (r.season, r.round) > after]
