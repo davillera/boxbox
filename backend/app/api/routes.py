@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.api.deps import EngineDep, ServiceDep
@@ -52,7 +53,8 @@ def list_upcoming_races(service: ServiceDep) -> list[RaceOut]:
     try:
         return upcoming_races(service.last_race)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="race calendar unavailable") from exc
+        logging.getLogger(__name__).warning("race calendar error, serving empty list: %s", exc)
+        return []
 
 
 @router.get("/review", response_model=ReviewOut, tags=["meta"])

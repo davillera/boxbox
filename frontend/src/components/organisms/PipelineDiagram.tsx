@@ -1,57 +1,42 @@
-import { ArrowDown, ArrowRight } from "lucide-react";
 import { Rich } from "@/components/atoms/Rich";
 
 type Step = { name: string; where: string; detail: string };
 
-/** Five boxes from raw data to this page; a row on wide screens, a column on phones. */
+/** Five boxes from raw data to this page; mobile-first grid that scales to 5 columns on desktop. */
 export function PipelineDiagram({ steps }: { steps: Step[] }) {
   return (
-    <ol className="grid gap-2 lg:grid-cols-[repeat(5,minmax(0,1fr))] lg:gap-0">
+    <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-2">
       {steps.map((s, i) => (
         <li
           key={s.name}
           data-anim="reveal"
           data-delay={i * 90}
-          className="flex flex-col lg:flex-row"
+          className="relative flex flex-col"
         >
           <div
-            className={`flex min-w-0 flex-1 flex-col gap-2 border-3 border-ink p-3 ${i < 3 ? "bg-panel" : "bg-ink text-chalk"} shadow-hard-sm`}
+            className={`flex h-full min-w-0 flex-1 flex-col gap-2.5 overflow-hidden border-3 border-ink p-3.5 sm:p-4 ${
+              i < 3 ? "bg-panel text-fg" : "bg-ink text-chalk"
+            } shadow-hard-sm`}
           >
-            <span className="flex items-center gap-2">
-              <span className="flex size-7 shrink-0 items-center justify-center border-2 border-ink bg-pirelli text-sm font-black text-ink">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex size-7 shrink-0 items-center justify-center border-2 border-ink bg-pirelli text-xs font-black text-ink shadow-[1px_1px_0_0_#0d0d0d]">
                 {i + 1}
               </span>
-              <span className="text-lg leading-tight font-sidewall">
+              <h4 className="min-w-0 flex-1 text-sm leading-tight font-sidewall break-words sm:text-base xl:text-sm 2xl:text-base">
                 {s.name}
-              </span>
-            </span>
+              </h4>
+            </div>
             <code
-              className={`font-mono text-xs ${i < 3 ? "text-muted" : "text-smoke"}`}
+              className={`truncate rounded-xs px-1 py-0.5 font-mono text-[11px] ${
+                i < 3 ? "bg-raised text-muted" : "bg-neutral-800 text-smoke"
+              }`}
             >
               {s.where}
             </code>
-            <p className="text-sm leading-snug">
+            <p className="text-xs leading-snug text-pretty sm:text-sm">
               <Rich text={s.detail} />
             </p>
           </div>
-          {i < steps.length - 1 && (
-            <span
-              aria-hidden
-              className="flex shrink-0 items-center justify-center py-1 text-redline lg:px-1 lg:py-0"
-            >
-              <ArrowDown
-                data-anim="nudge"
-                data-axis="y"
-                className="size-5 lg:hidden"
-                strokeWidth={3}
-              />
-              <ArrowRight
-                data-anim="nudge"
-                className="hidden size-5 lg:block"
-                strokeWidth={3}
-              />
-            </span>
-          )}
         </li>
       ))}
     </ol>

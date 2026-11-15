@@ -10,7 +10,7 @@ import logging
 import time
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import pandas as pd
 from boxbox_ml.sources import weather
@@ -28,7 +28,8 @@ _cache: tuple[float, list[RaceOut]] | None = None
 
 
 def _get_json(url: str) -> dict:
-    with urlopen(url, timeout=10) as resp:
+    req = Request(url, headers={"User-Agent": "BoxBox/1.0 (+https://github.com/davillera/boxbox)"})
+    with urlopen(req, timeout=10) as resp:
         return json.load(resp)
 
 
@@ -59,7 +60,8 @@ def _lap_seconds(text: str | None) -> float | None:
 
 def _qualifying(season: int, rnd: int, start: pd.Timestamp) -> list[QualifyingEntry] | None:
     """The qualifying classification, once Jolpica has published it (only asked for races this weekend)."""
-    if start - pd.Timestamp.now(UTC) > QUALIFYING_WINDOW:
+    now = pd.Timestamp.now(UTC)
+    if not (-timedelta(hours=6) <= start - now <= QUALIFYING_WINDOW):
         return None
     try:
         races = _get_json(QUALIFYING_URL.format(season=season, round=rnd))["MRData"]["RaceTable"]["Races"]
@@ -84,10 +86,13 @@ def _qualifying(season: int, rnd: int, start: pd.Timestamp) -> list[QualifyingEn
 
 
 def _fetch_calendar() -> list[RaceOut]:
+    now = pd.Timestamp.now(UTC)
     races = []
     for r in _get_json(CALENDAR_URL)["MRData"]["RaceTable"]["Races"]:
         loc = r["Circuit"]["Location"]
         start = pd.Timestamp(f"{r['date']}T{r.get('time') or DEFAULT_START}").tz_convert(UTC)
+        if start < now - timedelta(days=1):
+            continue
         lat, lon = float(loc["lat"]), float(loc["long"])
         races.append(
             RaceOut(

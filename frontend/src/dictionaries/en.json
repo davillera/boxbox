@@ -155,7 +155,7 @@
         {
           "name": "Serve",
           "where": "backend · FastAPI",
-          "detail": "Loads the model once at startup. Exposes the calendar with forecasts, predictions and the track record. Runs on Render."
+          "detail": "Loads the model once at startup. Exposes the calendar with forecasts, predictions and the track record. Runs on Google Cloud Run."
         },
         {
           "name": "Show",

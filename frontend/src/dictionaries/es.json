@@ -155,7 +155,7 @@
         {
           "name": "Servir",
           "where": "backend · FastAPI",
-          "detail": "Carga el modelo una sola vez al arrancar. Expone el calendario con el pronóstico, las predicciones y el historial. Corre en Render."
+          "detail": "Carga el modelo una sola vez al arrancar. Expone el calendario con el pronóstico, las predicciones y el historial. Corre en Google Cloud Run."
         },
         {
           "name": "Mostrar",
