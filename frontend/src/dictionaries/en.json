@@ -44,6 +44,22 @@
     "swap": "Move {driver}, position {position}",
     "swapped": "{a} and {b} swapped"
   },
+  "chaos": {
+    "title": "Chaos / What-If Mode",
+    "hint": "Simulate dramatic race scenarios with a single click",
+    "rain": "Monsoon",
+    "rainDesc": "Heavy wet track (16°C, 90% humidity)",
+    "polePenalty": "Pole Penalty (+10)",
+    "polePenaltyDesc": "Pole-sitter drops 10 grid slots",
+    "reverseTop10": "Invert Top 10",
+    "reverseTop10Desc": "Reverse starting grid for the top 10",
+    "heatwave": "Heatwave",
+    "heatwaveDesc": "Blistering track (40°C, low humidity)",
+    "reset": "Reset",
+    "resetDesc": "Back to official grid & weather",
+    "topRiser": "Top Riser",
+    "topFaller": "Top Faller"
+  },
   "predict": {
     "submit": "Predict race",
     "pending": "Calculating…",

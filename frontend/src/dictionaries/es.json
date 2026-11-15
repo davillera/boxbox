@@ -44,6 +44,22 @@
     "swap": "Mover {driver}, posición {position}",
     "swapped": "{a} y {b} intercambiados"
   },
+  "chaos": {
+    "title": "Modo Caos / What-If",
+    "hint": "Prueba situaciones dramáticas de carrera con un solo clic",
+    "rain": "Lluvia torrencial",
+    "rainDesc": "Pista mojada (16°C, 90% humedad)",
+    "polePenalty": "Sanción Pole (+10)",
+    "polePenaltyDesc": "El poleman sale 10 puestos atrás",
+    "reverseTop10": "Invertir Top 10",
+    "reverseTop10Desc": "Parrilla invertida para los 10 primeros",
+    "heatwave": "Ola de calor",
+    "heatwaveDesc": "Asfalto a 40°C y baja humedad",
+    "reset": "Restablecer",
+    "resetDesc": "Volver a la parrilla y clima oficial",
+    "topRiser": "Mayor beneficiado",
+    "topFaller": "Mayor perjudicado"
+  },
   "predict": {
     "submit": "Predecir carrera",
     "pending": "Calculando…",
