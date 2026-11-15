@@ -111,25 +111,25 @@ export function ResultsTable({
                       teamRef={teamOf(p.driver_ref)}
                       className="size-10"
                     />
-                    {/* Phones stack code over team; wider screens add the full name. */}
+                    {/* Driver code and name */}
                     <span className="flex flex-col leading-tight sm:flex-row sm:items-center sm:gap-2.5">
                       <span className="flex items-center gap-1.5">
                         <span className="text-base font-sidewall sm:w-11">
                           {p.driver_code}
                         </span>
                         {deltas?.topRiserRef === p.driver_ref && dictChaos && (
-                          <span className="inline-flex items-center border border-ink bg-pirelli px-1 text-[9px] font-black text-ink uppercase shadow-[1px_1px_0_0_#0d0d0d]">
+                          <span className="inline-flex animate-in fade-in zoom-in-95 duration-200 items-center border border-ink bg-pirelli px-1 text-[9px] font-black text-ink uppercase shadow-[1px_1px_0_0_#0d0d0d]">
                             {dictChaos.topRiser}
                           </span>
                         )}
                         {deltas?.topFallerRef === p.driver_ref && dictChaos && (
-                          <span className="inline-flex items-center border border-ink bg-redline px-1 text-[9px] font-black text-white uppercase shadow-[1px_1px_0_0_#0d0d0d]">
+                          <span className="inline-flex animate-in fade-in zoom-in-95 duration-200 items-center border border-ink bg-redline px-1 text-[9px] font-black text-white uppercase shadow-[1px_1px_0_0_#0d0d0d]">
                             {dictChaos.topFaller}
                           </span>
                         )}
                       </span>
                       <span className="flex min-w-0 flex-col leading-tight">
-                        <span className="hidden truncate text-sm font-semibold sm:block">
+                        <span className="truncate text-xs font-semibold sm:text-sm">
                           {p.driver_name}
                         </span>
                         <span className="text-[11px] text-muted sm:text-xs">
@@ -160,7 +160,7 @@ export function ResultsTable({
                       const val = Math.round(d.delta_win * 100);
                       return (
                         <span
-                          className={`shrink-0 border px-1 py-0 text-[10px] font-black tabular-nums ${
+                          className={`shrink-0 border px-1 py-0 text-[10px] font-black tabular-nums animate-in fade-in zoom-in-95 duration-200 transition-all shadow-[1px_1px_0_0_#0d0d0d] ${
                             isGain
                               ? "border-emerald-600 bg-emerald-950/80 text-emerald-400"
                               : "border-rose-600 bg-rose-950/80 text-rose-400"

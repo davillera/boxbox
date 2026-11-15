@@ -42,6 +42,8 @@ type Props = {
   review: Review;
   /** `season-round` from the shared link, if it names a race still on the calendar. */
   initialRace?: string;
+  initialChaos?: string;
+  initialGrid?: string;
 };
 
 const REFRESH_MS = 60_000;
@@ -61,7 +63,21 @@ export function PredictionWorkbench({
   races,
   review,
   initialRace,
+  initialChaos,
+  initialGrid,
 }: Props) {
+  const validPresets: ChaosPreset[] = [
+    "rain",
+    "polePenalty",
+    "reverseTop10",
+    "heatwave",
+  ];
+  const startChaos: ChaosPreset = validPresets.includes(
+    initialChaos as ChaosPreset,
+  )
+    ? (initialChaos as ChaosPreset)
+    : null;
+
   // The API lists races in calendar order, so the first one is the next GP.
   const [selected, setSelected] = useState(() =>
     races.some((r) => raceKey(r) === initialRace)
@@ -70,16 +86,45 @@ export function PredictionWorkbench({
         ? raceKey(races[0])
         : "",
   );
-  const [order, setOrder] = useState(() =>
-    startingOrder(
-      drivers,
-      races.find((r) => raceKey(r) === selected)?.qualifying,
-    ),
-  );
+
+  const initialRaceObj = races.find((r) => raceKey(r) === selected);
+  const initialOfficialOrder = startingOrder(drivers, initialRaceObj?.qualifying);
+
+  const [order, setOrder] = useState<Driver[]>(() => {
+    let base = initialOfficialOrder;
+    if (initialGrid) {
+      const refs = initialGrid.split(",");
+      const map = new Map(drivers.map((d) => [d.driver_ref, d]));
+      const custom = refs
+        .map((ref) => map.get(ref))
+        .filter((d): d is Driver => Boolean(d));
+      if (custom.length === drivers.length) {
+        base = custom;
+      }
+    }
+    if (startChaos === "polePenalty") {
+      return applyPolePenalty(base, 10);
+    }
+    if (startChaos === "reverseTop10") {
+      return invertTopN(base, 10);
+    }
+    return base;
+  });
+
   const [run, setRun] = useState<Run | null>(null);
-  const [chaosPreset, setChaosPreset] = useState<ChaosPreset>(null);
+  const [chaosPreset, setChaosPreset] = useState<ChaosPreset>(startChaos);
   const [customWeather, setCustomWeather] = useState<ScenarioWeather | null>(
-    null,
+    () => {
+      if (startChaos === "rain" || startChaos === "heatwave") {
+        return getScenarioWeather(startChaos, {
+          air_temp_c: initialRaceObj?.weather?.air_temp_c ?? null,
+          humidity_pct: initialRaceObj?.weather?.humidity_pct ?? null,
+          wind_speed_ms: initialRaceObj?.weather?.wind_speed_ms ?? null,
+          rainfall: initialRaceObj?.weather?.rainfall ?? false,
+        });
+      }
+      return null;
+    },
   );
   const [baselinePredictions, setBaselinePredictions] = useState<
     EntryPrediction[] | null
@@ -225,6 +270,29 @@ export function PredictionWorkbench({
           heading,
           predictions: res.data.predictions,
         });
+
+        // Sync its own unique link in the address bar
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.set("race", selected);
+          if (chaosPreset) {
+            url.searchParams.set("chaos", chaosPreset);
+          } else {
+            url.searchParams.delete("chaos");
+          }
+          const isCustomGrid = order.some(
+            (d, idx) => d.driver_ref !== initialOfficialOrder[idx]?.driver_ref,
+          );
+          if (isCustomGrid && !chaosPreset) {
+            url.searchParams.set(
+              "grid",
+              order.map((d) => d.driver_ref).join(","),
+            );
+          } else {
+            url.searchParams.delete("grid");
+          }
+          window.history.replaceState(null, "", url.toString());
+        }
       } else {
         setError(
           `${dict.errors[res.error]}${res.detail ? ` ${res.detail}` : ""}`,
@@ -237,6 +305,16 @@ export function PredictionWorkbench({
       });
     });
   };
+
+  const initialPredicted = useRef(false);
+  useEffect(() => {
+    if (initialPredicted.current) return;
+    if (initialRace) {
+      initialPredicted.current = true;
+      submit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-12 lg:gap-10">
@@ -306,6 +384,7 @@ export function PredictionWorkbench({
           action={
             <ShareButton
               raceKey={selected}
+              chaosPreset={chaosPreset}
               label={dict.board.share}
               done={dict.board.shared}
             />
@@ -316,6 +395,7 @@ export function PredictionWorkbench({
             {dict.predict.stale}
           </p>
         )}
+        {why && <WhyPanel dict={dict.why} lang={lang} prediction={why} />}
         {run && (
           <ResultsTable
             dict={dict.table}
@@ -329,7 +409,6 @@ export function PredictionWorkbench({
             onSelect={setExplained}
           />
         )}
-        {why && <WhyPanel dict={dict.why} lang={lang} prediction={why} />}
         <ReviewPanel dict={dict.review} lang={lang} review={review} />
         <TrustPanel dict={dict.trust} lang={lang} health={health} />
       </div>

@@ -36,7 +36,7 @@ export function WhyPanel({ dict, lang, prediction }: Props) {
       <div className="flex flex-col gap-1">
         <h2 id="why-title" className="text-xl font-sidewall">
           {fill(dict.title, {
-            driver: prediction.driver_code ?? prediction.driver_name,
+            driver: prediction.driver_name || prediction.driver_code || "",
           })}
         </h2>
         <p className="text-sm text-muted">
@@ -51,7 +51,7 @@ export function WhyPanel({ dict, lang, prediction }: Props) {
             return (
               <li
                 key={f.feature}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1"
+                className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-xs p-1 transition-all duration-150 hover:bg-raised hover:translate-x-1"
               >
                 <span className="min-w-0 truncate text-sm font-bold">
                   {labels[f.feature] ?? f.feature}
@@ -61,7 +61,7 @@ export function WhyPanel({ dict, lang, prediction }: Props) {
                   </span>
                 </span>
                 <span
-                  className={`text-sm font-black tabular-nums ${helps ? "" : "text-redline"}`}
+                  className={`text-sm font-black tabular-nums transition-transform duration-150 group-hover:scale-105 ${helps ? "" : "text-redline"}`}
                 >
                   {helps ? dict.helps : dict.hurts} ×
                   {odds.toLocaleString(lang, { maximumFractionDigits: 2 })}
@@ -69,11 +69,11 @@ export function WhyPanel({ dict, lang, prediction }: Props) {
                 {/* Diverging bar: hurts grow left of the axis, helps right of it. */}
                 <div
                   aria-hidden
-                  className="relative col-span-2 h-3 border-2 border-fg bg-ground"
+                  className="relative col-span-2 h-3 overflow-hidden border-2 border-fg bg-ground"
                 >
                   <span className="absolute inset-y-0 left-1/2 w-0.5 bg-fg" />
                   <span
-                    className={`absolute inset-y-0 ${helps ? "left-1/2 bg-pirelli" : "right-1/2 bg-redline"}`}
+                    className={`absolute inset-y-0 transition-all duration-700 ease-out ${helps ? "left-1/2 bg-pirelli" : "right-1/2 bg-redline"}`}
                     style={{ width: `${(Math.abs(f.effect) / biggest) * 50}%` }}
                   />
                 </div>

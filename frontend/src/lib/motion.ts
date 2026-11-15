@@ -156,3 +156,52 @@ export const HOVERS: Record<string, (el: HTMLElement) => void> = {
       ease: "outQuad",
     }),
 };
+
+/**
+ * F1 telemetry smooth scroll with a velocity ramp:
+ * Rapid acceleration out of the corner, flat-out down the straight, and a hard braking zone into the apex.
+ */
+export function raceScrollTo(targetSelector: string, duration = 850) {
+  if (typeof window === "undefined") return;
+  const target = document.querySelector<HTMLElement>(targetSelector);
+  if (!target) return;
+  const el = target;
+
+  const startY = window.scrollY;
+  const targetY = el.getBoundingClientRect().top + window.scrollY - 32;
+  const diff = targetY - startY;
+  if (Math.abs(diff) < 10) return;
+
+  if (!matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+    el.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+
+  const startTime = performance.now();
+
+  // Quintic velocity ramp (smooth S-curve with steep acceleration and braking)
+  function easeVelocityRamp(t: number): number {
+    return t < 0.5 ? 16 * Math.pow(t, 5) : 1 - Math.pow(-2 * t + 2, 5) / 2;
+  }
+
+  function step(now: number) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = easeVelocityRamp(progress);
+
+    window.scrollTo(0, startY + diff * eased);
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      // Telemetry apex pulse on target
+      el.classList.add("ring-4", "ring-pirelli", "transition-all", "duration-500");
+      setTimeout(() => {
+        el.classList.remove("ring-4", "ring-pirelli");
+      }, 700);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+

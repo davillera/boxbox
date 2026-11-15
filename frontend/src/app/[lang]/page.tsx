@@ -13,16 +13,18 @@ import {
 } from "@/dictionaries";
 import { getCatalog } from "@/lib/api";
 
-// A shared link (?race=season-round) gets its own podium card as the preview image.
+// A shared link (?race=season-round&chaos=preset) gets its own podium card as the preview image.
 export async function generateMetadata({
   params,
   searchParams,
 }: PageProps<"/[lang]">): Promise<Metadata> {
-  const [{ lang }, { race }] = await Promise.all([params, searchParams]);
+  const [{ lang }, { race, chaos }] = await Promise.all([params, searchParams]);
   if (!hasLocale(lang)) notFound();
   const card = new URLSearchParams({ lang });
   if (typeof race === "string" && /^\d{4}-\d{1,2}$/.test(race))
     card.set("race", race);
+  if (typeof chaos === "string")
+    card.set("chaos", chaos);
   return {
     openGraph: {
       images: [{ url: `/og?${card}`, width: 1200, height: 630 }],
@@ -61,16 +63,21 @@ async function Workbench({
   dict: Dictionary;
   searchParams: PageProps<"/[lang]">["searchParams"];
 }) {
-  const [{ race }, catalog] = await Promise.all([
+  const [params, catalog] = await Promise.all([
     searchParams,
     getCatalog().catch(() => null),
   ]);
   if (!catalog) return <OfflineBoard dict={dict.errors} lang={lang} />;
+  const race = typeof params.race === "string" ? params.race : undefined;
+  const chaos = typeof params.chaos === "string" ? params.chaos : undefined;
+  const grid = typeof params.grid === "string" ? params.grid : undefined;
   return (
     <PredictionWorkbench
       lang={lang}
       dict={dict}
-      initialRace={typeof race === "string" ? race : undefined}
+      initialRace={race}
+      initialChaos={chaos}
+      initialGrid={grid}
       {...catalog}
     />
   );

@@ -4,6 +4,7 @@ import { Joined } from "@/components/atoms/Joined";
 import { BoardSlat } from "@/components/molecules/BoardSlat";
 import { fill, type Dictionary, type Locale } from "@/dictionaries";
 import type { EntryPrediction } from "@/lib/api";
+import { raceScrollTo } from "@/lib/motion";
 import { pct } from "@/lib/teams";
 
 type Props = {
@@ -100,10 +101,14 @@ export function PitBoard({
         })}{" "}
         <a
           href="#trust-title"
-          className="inline-flex items-center gap-1 font-black whitespace-nowrap underline"
+          onClick={(e) => {
+            e.preventDefault();
+            raceScrollTo("#trust-title", 850);
+          }}
+          className="inline-flex cursor-pointer items-center gap-1 font-black whitespace-nowrap underline transition-colors hover:text-redline"
         >
           {trustLabel}
-          <ArrowDown aria-hidden className="size-4" strokeWidth={3} />
+          <ArrowDown aria-hidden className="size-4 animate-bounce" strokeWidth={3} />
         </a>
       </p>
     </section>
