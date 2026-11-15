@@ -2,10 +2,13 @@ import { ProbabilityBar } from "@/components/atoms/ProbabilityBar";
 import { DriverPhoto } from "@/components/atoms/DriverPhoto";
 import type { Dictionary, Locale } from "@/dictionaries";
 import type { EntryPrediction } from "@/lib/api";
+import type { ScenarioDeltas } from "@/lib/scenarios";
 import { pct, shortTeam } from "@/lib/teams";
 
 type Props = {
   dict: Dictionary["table"];
+  dictChaos?: Dictionary["chaos"];
+  deltas?: ScenarioDeltas | null;
   lang: Locale;
   predictions: (EntryPrediction & {
     finish?: number | null;
@@ -32,6 +35,8 @@ const OUT: Record<string, string> = {
 
 export function ResultsTable({
   dict,
+  dictChaos,
+  deltas,
   lang,
   predictions,
   teamOf,
@@ -108,8 +113,20 @@ export function ResultsTable({
                     />
                     {/* Phones stack code over team; wider screens add the full name. */}
                     <span className="flex flex-col leading-tight sm:flex-row sm:items-center sm:gap-2.5">
-                      <span className="text-base font-sidewall sm:w-11">
-                        {p.driver_code}
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-base font-sidewall sm:w-11">
+                          {p.driver_code}
+                        </span>
+                        {deltas?.topRiserRef === p.driver_ref && dictChaos && (
+                          <span className="inline-flex items-center border border-ink bg-pirelli px-1 text-[9px] font-black text-ink uppercase shadow-[1px_1px_0_0_#0d0d0d]">
+                            {dictChaos.topRiser}
+                          </span>
+                        )}
+                        {deltas?.topFallerRef === p.driver_ref && dictChaos && (
+                          <span className="inline-flex items-center border border-ink bg-redline px-1 text-[9px] font-black text-white uppercase shadow-[1px_1px_0_0_#0d0d0d]">
+                            {dictChaos.topFaller}
+                          </span>
+                        )}
                       </span>
                       <span className="flex min-w-0 flex-col leading-tight">
                         <span className="hidden truncate text-sm font-semibold sm:block">
@@ -126,13 +143,34 @@ export function ResultsTable({
                   {p.grid_position ? `P${p.grid_position}` : "PL"}
                 </td>
                 <td className="px-2 py-1.5 sm:px-3">
-                  <ProbabilityBar
-                    tone="win"
-                    value={p.win_probability}
-                    scale={maxWin}
-                    label={pct(p.win_probability, lang)}
-                    delay={i * 25}
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <ProbabilityBar
+                        tone="win"
+                        value={p.win_probability}
+                        scale={maxWin}
+                        label={pct(p.win_probability, lang)}
+                        delay={i * 25}
+                      />
+                    </div>
+                    {(() => {
+                      const d = deltas?.deltas.get(p.driver_ref);
+                      if (!d || Math.abs(d.delta_win) < 0.005) return null;
+                      const isGain = d.delta_win > 0;
+                      const val = Math.round(d.delta_win * 100);
+                      return (
+                        <span
+                          className={`shrink-0 border px-1 py-0 text-[10px] font-black tabular-nums ${
+                            isGain
+                              ? "border-emerald-600 bg-emerald-950/80 text-emerald-400"
+                              : "border-rose-600 bg-rose-950/80 text-rose-400"
+                          }`}
+                        >
+                          {isGain ? `+${val}%` : `${val}%`}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </td>
                 <td className={`px-2 py-1.5 sm:px-3 ${podiumCol}`}>
                   <ProbabilityBar
