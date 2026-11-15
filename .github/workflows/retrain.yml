@@ -103,3 +103,18 @@ jobs:
           git add artifacts/model.joblib artifacts/metrics.json
           git commit -m "Retrain model with results to ${{ steps.check.outputs.latest }}"
           git push
+
+      - name: Authenticate to Google Cloud
+        if: steps.check.outputs.new == 'true' && secrets.GCP_SA_KEY != ''
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        if: steps.check.outputs.new == 'true' && secrets.GCP_SA_KEY != ''
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & Deploy to Cloud Run
+        if: steps.check.outputs.new == 'true' && secrets.GCP_SA_KEY != ''
+        run: |
+          gcloud builds submit --config=cloudbuild.yaml .

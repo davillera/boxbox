@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+gcp-key.json
+*.key.json
 
 # Python
 __pycache__/
