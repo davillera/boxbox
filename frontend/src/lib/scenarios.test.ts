@@ -50,27 +50,30 @@ test("getScenarioWeather returns correct conditions for rain and heatwave", () =
 
 test("computeDeltas computes accurate probability deltas and spots top riser and faller", () => {
   const baseline = [
-    { driver_ref: "norris", p_win: 0.35, p_podium: 0.75 },
-    { driver_ref: "verstappen", p_win: 0.40, p_podium: 0.80 },
-    { driver_ref: "leclerc", p_win: 0.15, p_podium: 0.50 },
+    { driver_ref: "norris", win_probability: 0.35, podium_probability: 0.75 },
+    { driver_ref: "verstappen", win_probability: 0.4, podium_probability: 0.8 },
+    { driver_ref: "leclerc", win_probability: 0.15, podium_probability: 0.5 },
   ];
 
   const current = [
-    { driver_ref: "norris", p_win: 0.50, p_podium: 0.85 }, // +0.15 win -> top riser
-    { driver_ref: "verstappen", p_win: 0.20, p_podium: 0.60 }, // -0.20 win -> top faller
-    { driver_ref: "leclerc", p_win: 0.18, p_podium: 0.55 }, // +0.03 win
+    { driver_ref: "norris", win_probability: 0.5, podium_probability: 0.85 }, // +0.15 win -> top riser
+    { driver_ref: "verstappen", win_probability: 0.2, podium_probability: 0.6 }, // -0.20 win -> top faller
+    { driver_ref: "leclerc", win_probability: 0.18, podium_probability: 0.55 }, // +0.03 win
   ];
 
-  const { deltas, topRiserRef, topFallerRef } = computeDeltas(baseline, current);
+  const { deltas, topRiserRef, topFallerRef } = computeDeltas(
+    baseline,
+    current,
+  );
 
   const norrisDelta = deltas.get("norris");
   assert.ok(norrisDelta);
   assert.ok(Math.abs(norrisDelta.delta_win - 0.15) < 0.0001);
-  assert.ok(Math.abs(norrisDelta.delta_podium - 0.10) < 0.0001);
+  assert.ok(Math.abs(norrisDelta.delta_podium - 0.1) < 0.0001);
 
   const maxDelta = deltas.get("verstappen");
   assert.ok(maxDelta);
-  assert.ok(Math.abs(maxDelta.delta_win - (-0.20)) < 0.0001);
+  assert.ok(Math.abs(maxDelta.delta_win - -0.2) < 0.0001);
 
   assert.equal(topRiserRef, "norris");
   assert.equal(topFallerRef, "verstappen");

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Flag, LoaderCircle } from "lucide-react";
 import { predictRace } from "@/app/[lang]/actions";
 import { Button } from "@/components/atoms/Button";
+import { ChaosToolbar } from "@/components/molecules/ChaosToolbar";
 import { ShareButton } from "@/components/molecules/ShareButton";
 import { PitBoard } from "@/components/organisms/PitBoard";
 import { RaceSetup, raceKey } from "@/components/organisms/RaceSetup";
@@ -15,6 +16,14 @@ import { TrustPanel } from "@/components/organisms/TrustPanel";
 import { WhyPanel } from "@/components/organisms/WhyPanel";
 import type { Dictionary, Locale } from "@/dictionaries";
 import { startingOrder } from "@/lib/grid";
+import {
+  applyPolePenalty,
+  computeDeltas,
+  getScenarioWeather,
+  invertTopN,
+  type ChaosPreset,
+  type ScenarioWeather,
+} from "@/lib/scenarios";
 import type {
   Driver,
   EntryPrediction,
@@ -68,6 +77,13 @@ export function PredictionWorkbench({
     ),
   );
   const [run, setRun] = useState<Run | null>(null);
+  const [chaosPreset, setChaosPreset] = useState<ChaosPreset>(null);
+  const [customWeather, setCustomWeather] = useState<ScenarioWeather | null>(
+    null,
+  );
+  const [baselinePredictions, setBaselinePredictions] = useState<
+    EntryPrediction[] | null
+  >(null);
   const [explained, setExplained] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -92,6 +108,9 @@ export function PredictionWorkbench({
     if (seenQuali.current === qualiKey) return;
     seenQuali.current = qualiKey;
     setOrder(startingOrder(drivers, race?.qualifying));
+    setChaosPreset(null);
+    setCustomWeather(null);
+    setBaselinePredictions(null);
     setRun(null);
   }, [qualiKey, drivers, race?.qualifying]);
   const w = race?.weather;
@@ -99,9 +118,42 @@ export function PredictionWorkbench({
 
   const pick = (key: string) => {
     setSelected(key);
+    setChaosPreset(null);
+    setCustomWeather(null);
+    setBaselinePredictions(null);
     setOrder(
       startingOrder(drivers, races.find((r) => raceKey(r) === key)?.qualifying),
     );
+  };
+
+  const officialOrder = startingOrder(drivers, race?.qualifying);
+  const baseWeather: ScenarioWeather = {
+    air_temp_c: w?.air_temp_c ?? null,
+    humidity_pct: w?.humidity_pct ?? null,
+    wind_speed_ms: w?.wind_speed_ms ?? null,
+    rainfall: w?.rainfall ?? false,
+  };
+
+  const handleSelectPreset = (preset: ChaosPreset) => {
+    setChaosPreset(preset);
+    if (run?.predictions && !baselinePredictions) {
+      setBaselinePredictions(run.predictions);
+    }
+    if (preset === "polePenalty") {
+      setOrder(applyPolePenalty(officialOrder, 10));
+      setCustomWeather(null);
+    } else if (preset === "reverseTop10") {
+      setOrder(invertTopN(officialOrder, 10));
+      setCustomWeather(null);
+    } else if (preset === "rain" || preset === "heatwave") {
+      setCustomWeather(getScenarioWeather(preset, baseWeather));
+    }
+  };
+
+  const handleResetChaos = () => {
+    setChaosPreset(null);
+    setCustomWeather(null);
+    setOrder(officialOrder);
   };
 
   // Defaults to the favourite; clicking a driver in the table explains that one instead.
@@ -110,17 +162,23 @@ export function PredictionWorkbench({
       run.predictions[0])
     : null;
 
+  const effectiveWeather: ScenarioWeather = customWeather ?? baseWeather;
+
+  const deltas =
+    baselinePredictions && run?.predictions
+      ? computeDeltas(baselinePredictions, run.predictions)
+      : null;
+
   const request: PredictRequest | null = race
     ? {
         circuit_ref: race.circuit_ref,
         season: race.season,
         round: race.round,
-        // No forecast yet: unknown weather (the model treats it as missing), dry track.
         weather: {
-          air_temp_c: w?.air_temp_c ?? null,
-          humidity_pct: w?.humidity_pct ?? null,
-          wind_speed_ms: w?.wind_speed_ms ?? null,
-          rainfall: w?.rainfall ?? false,
+          air_temp_c: effectiveWeather.air_temp_c,
+          humidity_pct: effectiveWeather.humidity_pct,
+          wind_speed_ms: effectiveWeather.wind_speed_ms,
+          rainfall: effectiveWeather.rainfall,
         },
         entries: order.map((d, i) => {
           // The qualifying gap only holds while the driver still starts from his qualifying slot.
@@ -141,16 +199,26 @@ export function PredictionWorkbench({
   // A function `action` (not onSubmit) keeps a click before hydration from doing a native GET submit.
   const submit = () => {
     if (!race || !request) return;
+    const condLabel = chaosPreset
+      ? dict.chaos[chaosPreset]
+      : effectiveWeather.rainfall
+        ? dict.setup.wet
+        : dict.setup.dry;
     const heading = [
       race.name,
-      w && (w.rainfall ? dict.setup.wet : dict.setup.dry),
-      w && `${Math.round(w.air_temp_c)} °C`,
+      condLabel,
+      effectiveWeather.air_temp_c !== null
+        ? `${Math.round(effectiveWeather.air_temp_c)} °C`
+        : null,
     ].filter((part): part is string => Boolean(part));
     startTransition(async () => {
       const res = await predictRace(request);
       if (res.ok) {
         setError(null);
         setExplained(null);
+        if (!chaosPreset && !baselinePredictions) {
+          setBaselinePredictions(res.data.predictions);
+        }
         setRun({
           id: (run?.id ?? 0) + 1,
           key,
@@ -187,11 +255,21 @@ export function PredictionWorkbench({
           value={selected}
           onChange={pick}
         />
+        <ChaosToolbar
+          activePreset={chaosPreset}
+          onSelectPreset={handleSelectPreset}
+          onReset={handleResetChaos}
+          dict={dict.chaos}
+          disabled={pending || !race}
+        />
         <StartingGrid
           dict={dict.grid}
           order={order}
           onChange={setOrder}
-          onReset={() => pick(selected)}
+          onReset={() => {
+            handleResetChaos();
+            pick(selected);
+          }}
         />
         <div className="sticky bottom-3 z-10 -mx-1 mt-1">
           <Button type="submit" disabled={pending || !race} className="w-full">
@@ -241,6 +319,8 @@ export function PredictionWorkbench({
         {run && (
           <ResultsTable
             dict={dict.table}
+            dictChaos={dict.chaos}
+            deltas={deltas}
             lang={lang}
             predictions={run.predictions}
             teamOf={(ref) => teams.get(ref)}

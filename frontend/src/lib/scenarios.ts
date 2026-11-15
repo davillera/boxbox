@@ -3,11 +3,7 @@
  */
 
 export type ChaosPreset =
-  | "rain"
-  | "polePenalty"
-  | "reverseTop10"
-  | "heatwave"
-  | null;
+  "rain" | "polePenalty" | "reverseTop10" | "heatwave" | null;
 
 export interface ScenarioWeather {
   air_temp_c: number | null;
@@ -81,12 +77,18 @@ export function getScenarioWeather(
   }
 }
 
+export interface BasePrediction {
+  driver_ref: string;
+  win_probability: number;
+  podium_probability: number;
+}
+
 /**
  * Compute differences in win and podium probabilities between baseline and current scenario.
  */
 export function computeDeltas(
-  baseline: { driver_ref: string; p_win: number; p_podium: number }[],
-  current: { driver_ref: string; p_win: number; p_podium: number }[],
+  baseline: BasePrediction[],
+  current: BasePrediction[],
 ): ScenarioDeltas {
   const baseMap = new Map(baseline.map((b) => [b.driver_ref, b]));
   const deltas = new Map<string, DriverDelta>();
@@ -100,8 +102,8 @@ export function computeDeltas(
     const base = baseMap.get(entry.driver_ref);
     if (!base) continue;
 
-    const delta_win = entry.p_win - base.p_win;
-    const delta_podium = entry.p_podium - base.p_podium;
+    const delta_win = entry.win_probability - base.win_probability;
+    const delta_podium = entry.podium_probability - base.podium_probability;
 
     deltas.set(entry.driver_ref, {
       driver_ref: entry.driver_ref,

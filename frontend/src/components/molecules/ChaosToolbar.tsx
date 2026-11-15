@@ -53,7 +53,8 @@ export function ChaosToolbar({
       label: dict.reverseTop10,
       desc: dict.reverseTop10Desc,
       icon: Shuffle,
-      activeClass: "bg-pirelli text-ink border-ink shadow-[3px_3px_0_0_#0d0d0d]",
+      activeClass:
+        "bg-pirelli text-ink border-ink shadow-[3px_3px_0_0_#0d0d0d]",
     },
     {
       id: "heatwave",
@@ -77,7 +78,7 @@ export function ChaosToolbar({
             {dict.title}
           </h2>
         </div>
-        <p className="text-muted text-[11px] font-medium tracking-tight">
+        <p className="text-[11px] font-medium tracking-tight text-muted">
           {dict.hint}
         </p>
       </div>
@@ -111,7 +112,7 @@ export function ChaosToolbar({
           disabled={disabled || activePreset === null}
           title={dict.resetDesc}
           onClick={onReset}
-          className="ml-auto inline-flex items-center gap-1.5 border-2 border-fg/30 bg-ground px-2.5 py-1 text-xs font-bold tracking-wide uppercase italic text-muted transition-[translate,box-shadow,color] duration-100 hover:-translate-0.5 hover:border-fg hover:text-fg hover:shadow-hard-sm active:translate-0.5 disabled:pointer-events-none disabled:opacity-40"
+          className="ml-auto inline-flex items-center gap-1.5 border-2 border-fg/30 bg-ground px-2.5 py-1 text-xs font-bold tracking-wide text-muted uppercase italic transition-[translate,box-shadow,color] duration-100 hover:-translate-0.5 hover:border-fg hover:text-fg hover:shadow-hard-sm active:translate-0.5 disabled:pointer-events-none disabled:opacity-40"
         >
           <RotateCcw className="size-3.5 shrink-0" />
           <span>{dict.reset}</span>

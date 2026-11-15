@@ -17,5 +17,8 @@ test("pickLocale falls back to the default and skips refused languages", () => {
 test("es and en dictionaries have matching top-level and chaos keys", async () => {
   const es = await import("./es.json", { with: { type: "json" } });
   const en = await import("./en.json", { with: { type: "json" } });
-  assert.deepEqual(Object.keys(es.default.chaos), Object.keys(en.default.chaos));
+  assert.deepEqual(
+    Object.keys(es.default.chaos),
+    Object.keys(en.default.chaos),
+  );
 });
