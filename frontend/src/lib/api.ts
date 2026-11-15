@@ -243,10 +243,28 @@ export const API_URL = (
   process.env.BOXBOX_API_URL ?? "http://localhost:8000"
 ).replace(/\/+$/, "");
 
+/** Cloud Run cold starts: long per-attempt timeout, retry on network errors and 502/503/504. */
+export async function fetchRetry(
+  path: string,
+  init: RequestInit = {},
+  { attempts = 3, timeoutMs = 25000 } = {},
+): Promise<Response> {
+  for (let i = 1; ; i++) {
+    try {
+      const res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (![502, 503, 504].includes(res.status) || i >= attempts) return res;
+    } catch (e) {
+      if (i >= attempts) throw e;
+    }
+    await new Promise((r) => setTimeout(r, 1000 * i));
+  }
+}
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    signal: AbortSignal.timeout(8000),
-  });
+  const res = await fetchRetry(path);
   if (!res.ok) throw new Error(`GET ${path} -> ${res.status}`);
   return res.json();
 }

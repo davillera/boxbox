@@ -1,6 +1,6 @@
 "use server";
 
-import { API_URL, type PredictRequest, type PredictResponse } from "@/lib/api";
+import { fetchRetry, type PredictRequest, type PredictResponse } from "@/lib/api";
 
 export type PredictResult =
   | { ok: true; data: PredictResponse }
@@ -10,11 +10,10 @@ export type PredictResult =
 export async function predictRace(req: PredictRequest): Promise<PredictResult> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/predict`, {
+    res = await fetchRetry("/predict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
-      signal: AbortSignal.timeout(15000),
     });
   } catch {
     return { ok: false, error: "network" };
