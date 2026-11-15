@@ -2,7 +2,7 @@
 #
 # Runs every day; it only trains when Jolpica has a race the deployed model has
 # not seen. A new model is committed only if it passes the quality gate and the
-# API tests, and that push redeploys Render (API) and Vercel (web) on its own.
+# API tests, and that push redeploys Cloud Run (API) and Vercel (web) on its own.
 name: Retrain after a Grand Prix
 
 on:

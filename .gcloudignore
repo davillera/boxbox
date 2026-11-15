@@ -1,0 +1,21 @@
+.gcloudignore
+.git
+.gitignore
+
+# Environments & caches
+.venv/
+backend/.venv/
+boxbox-ml/.venv/
+boxbox-ml/cache/
+boxbox-ml/data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Frontend
+frontend/
+node_modules/
+
+# Docs & screenshots
+docs/

@@ -1,0 +1,33 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+    args:
+      - 'build'
+      - '-f'
+      - 'backend/Dockerfile'
+      - '-t'
+      - '$_IMAGE_NAME'
+      - '.'
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '$_IMAGE_NAME'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'boxbox-api'
+      - '--image'
+      - '$_IMAGE_NAME'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--max-instances=1'
+      - '--min-instances=0'
+substitutions:
+  _IMAGE_NAME: 'us-central1-docker.pkg.dev/ocobo-software-developments/cloud-run-source-deploy/boxbox-api:latest'
+images:
+  - '$_IMAGE_NAME'

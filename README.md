@@ -7,12 +7,12 @@ Next.js dashboard in Spanish and English.
 **[Try the site](https://boxbox-azure.vercel.app/en)** ·
 [How the model works](https://boxbox-azure.vercel.app/en/how) ·
 [Prediction track record](https://boxbox-azure.vercel.app/en/review) ·
-[API (OpenAPI)](https://boxbox-api-4nx4.onrender.com/docs)
+[API (OpenAPI)](https://boxbox-api-323985720394.us-central1.run.app/docs)
 
 ![Dashboard: a Grand Prix with its weather forecast, an editable starting grid and the pit board with the most likely podium](docs/screenshots/dashboard.png)
 
 > An independent portfolio and learning project, not affiliated with Formula 1.
-> The API runs on Render's free plan: after a while without visits, the first load takes about a minute.
+> The API runs on Google Cloud Run.
 
 ## What it does
 
@@ -51,7 +51,7 @@ flowchart LR
     E[extract<br/>Parquet per season] --> F[features<br/>pre-race data only]
     F --> T[train<br/>race-by-race backtest<br/>+ final fit]
     T --> M[(model.joblib<br/>+ metrics.json)]
-    M --> A[FastAPI<br/>Render]
+    M --> A[FastAPI<br/>Cloud Run]
     A --> W[Next.js<br/>Vercel]
     T -. results .-> N[(Neon<br/>Postgres)]
     A -. prediction log .-> N

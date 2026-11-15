@@ -17,7 +17,7 @@ boxbox-ml/cache/
 boxbox-ml/data/
 boxbox-ml/artifacts/*
 *.joblib
-# The deployed model ships with the repo: Render builds the API image from it (~300 KB).
+# The deployed model ships with the repo: Cloud Build / Cloud Run builds the API image from it (~300 KB).
 !boxbox-ml/artifacts/model.joblib
 !boxbox-ml/artifacts/metrics.json
 *.pkl
