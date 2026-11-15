@@ -126,9 +126,9 @@
     "short": {
       "title": "La versión corta",
       "body": [
-        "BoxBox resuelve un problema de **clasificación supervisada**. Cada ejemplo es **un piloto en una carrera**, y el modelo responde: ¿cuál es la probabilidad de que este piloto gane, de que termine 2.º o 3.º, o de que quede fuera del podio?",
-        "Piénsalo como una función pura `f(variables) → [p_victoria, p_podio, p_resto]` cuyos parámetros no escribimos a mano: se **ajustan** mirando {rows} ejemplos reales (de {from} a {to}, {races} carreras). Entrenar es eso: buscar los parámetros que hacen que la función acierte lo mejor posible con los datos que ya conocemos, con la esperanza de que también acierte con los que no conoce.",
-        "Esa última frase es todo el oficio: un modelo que solo acierta en los datos con los que se entrenó no sirve para nada. Casi todo lo que verás abajo (cómo se construyen las variables, cómo se valida, por qué el modelo es pequeño) existe para que el modelo **generalice** a carreras que no ha visto."
+        "BoxBox predice el resultado de cada piloto en cada carrera. Para cada uno calcula tres probabilidades: **ganar**, **subir al podio** o **quedarse fuera**.",
+        "En lugar de escribir reglas a mano (*«si sale primero y no llueve, gana»*), el modelo descubre los patrones analizando {rows} ejemplos reales ({races} carreras, de {from} a {to}).",
+        "La clave no es memorizar el pasado, sino **predecir el futuro**. Un modelo que solo acierta lo que ya ocurrió no sirve: todo en este sistema está diseñado para que el modelo **generalice** y acierte en la carrera del próximo domingo."
       ]
     },
     "pipeline": {

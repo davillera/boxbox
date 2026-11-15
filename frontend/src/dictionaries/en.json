@@ -126,9 +126,9 @@
     "short": {
       "title": "The short version",
       "body": [
-        "BoxBox solves a **supervised classification** problem. Each example is **one driver in one race**, and the model answers: what's the chance this driver wins, finishes 2nd or 3rd, or misses the podium?",
-        "Think of it as a pure function `f(features) → [p_win, p_podium, p_rest]` whose parameters nobody writes by hand: they are **fitted** by looking at {rows} real examples (from {from} to {to}, {races} races). That's all training is: finding the parameters that make the function as right as possible on data we already know, hoping it stays right on data it hasn't seen.",
-        "That last sentence is the whole craft. A model that's only right on its training data is useless. Almost everything below (how features are built, how it's validated, why the model is small) exists so the model **generalises** to races it hasn't seen."
+        "BoxBox predicts the outcome for every driver in each race. For each one, it estimates three probabilities: **winning**, **finishing on the podium**, or **missing out**.",
+        "Instead of hand-writing rules (*\"if on pole and dry, they win\"*), the model spots the patterns by analyzing {rows} real examples ({races} races, from {from} to {to}).",
+        "The goal isn't memorizing the past, but **predicting the future**. A model that only gets past races right is useless: everything in this system is designed so the model **generalises** to next Sunday's race."
       ]
     },
     "pipeline": {
